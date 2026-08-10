@@ -1,0 +1,422 @@
+/* ==========================================
+   SHRI AI OS - V1.0 STYLE
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background: #0b1020;
+    color: white;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    min-height: 100vh;
+}
+
+
+/* ==========================================
+   MAIN CONTAINER
+   ========================================== */
+
+.container {
+    width: 90%;
+    max-width: 420px;
+
+    height: 92vh;
+
+    background: #151b31;
+
+    border: 1px solid #2d3b6f;
+
+    border-radius: 20px;
+
+    padding: 25px;
+
+    text-align: center;
+
+    box-shadow:
+        0 0 30px rgba(0, 150, 255, 0.25);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    position: relative;
+}
+
+
+/* ==========================================
+   SHRI LOGO
+   ========================================== */
+
+.logo-circle {
+
+    width: 120px;
+    height: 120px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #00bfff;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    font-size: 55px;
+
+    font-weight: bold;
+
+    color: white;
+
+    box-shadow:
+        0 0 35px #00bfff;
+
+    margin-bottom: 15px;
+}
+
+
+/* ==========================================
+   TITLE
+   ========================================== */
+
+h1 {
+
+    margin-bottom: 8px;
+
+    color: #6fd3ff;
+
+}
+
+
+/* ==========================================
+   TAGLINE
+   ========================================== */
+
+.tagline {
+
+    color: #8ecfff;
+
+    font-size: 14px;
+
+    margin-bottom: 10px;
+
+    opacity: 0.8;
+
+}
+
+
+/* ==========================================
+   STATUS
+   ========================================== */
+
+.status {
+
+    color: #bfc9ff;
+
+    margin-bottom: 10px;
+
+}
+
+
+/* ==========================================
+   CHAT AREA
+   ========================================== */
+
+#response {
+
+    width: 100%;
+
+    flex: 1;
+
+    margin-top: 10px;
+
+    background: #0f152b;
+
+    padding: 15px;
+
+    border-radius: 12px;
+
+    min-height: 120px;
+
+    text-align: left;
+
+    line-height: 1.6;
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+
+    scroll-behavior: smooth;
+
+    box-shadow:
+        0 0 15px rgba(0, 191, 255, 0.3);
+
+}
+
+
+/* ==========================================
+   SCROLLBAR
+   ========================================== */
+
+#response::-webkit-scrollbar {
+
+    width: 5px;
+
+}
+
+#response::-webkit-scrollbar-thumb {
+
+    background: #2d65ff;
+
+    border-radius: 10px;
+
+}
+
+
+/* ==========================================
+   MIC
+   ========================================== */
+
+#mic {
+
+    width: 80px;
+
+    height: 80px;
+
+    flex-shrink: 0;
+
+    border: none;
+
+    border-radius: 50%;
+
+    font-size: 32px;
+
+    cursor: pointer;
+
+    background: #00a8ff;
+
+    color: white;
+
+    transition: 0.3s;
+
+    box-shadow:
+        0 0 25px #00bfff;
+
+    margin-top: 12px;
+
+}
+
+
+#mic:hover {
+
+    transform: scale(1.08);
+
+}
+
+
+/* ==========================================
+   LISTENING ANIMATION
+   ========================================== */
+
+@keyframes pulse {
+
+    0% {
+
+        transform: scale(1);
+
+        box-shadow:
+            0 0 20px #00bfff;
+
+    }
+
+    50% {
+
+        transform: scale(1.08);
+
+        box-shadow:
+            0 0 45px #00bfff;
+
+    }
+
+    100% {
+
+        transform: scale(1);
+
+        box-shadow:
+            0 0 20px #00bfff;
+
+    }
+
+}
+
+
+.listening {
+
+    animation:
+        pulse 1.2s infinite;
+
+}
+
+
+/* ==========================================
+   USER MESSAGE
+   ========================================== */
+
+.user-message {
+
+    background: #1e88e5;
+
+    color: white;
+
+    padding: 12px;
+
+    border-radius:
+        15px 15px 0 15px;
+
+    margin: 12px 0;
+
+    margin-left: 50px;
+
+    text-align: left;
+
+    animation:
+        fadeIn 0.3s;
+
+}
+
+
+/* ==========================================
+   AI MESSAGE
+   ========================================== */
+
+.ai-message {
+
+    background: #202945;
+
+    color: white;
+
+    padding: 12px;
+
+    border-radius:
+        15px 15px 15px 0;
+
+    margin: 12px 0;
+
+    margin-right: 50px;
+
+    text-align: left;
+
+    animation:
+        fadeIn 0.3s;
+
+}
+
+
+/* ==========================================
+   MESSAGE ANIMATION
+   ========================================== */
+
+@keyframes fadeIn {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            translateY(10px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}
+
+
+/* ==========================================
+   MOBILE
+   ========================================== */
+
+@media (max-width: 500px) {
+
+    .container {
+
+        width: 92%;
+
+        height: 94vh;
+
+        padding: 18px;
+
+        border-radius: 18px;
+
+    }
+
+
+    .logo-circle {
+
+        width: 90px;
+
+        height: 90px;
+
+        font-size: 42px;
+
+        margin-bottom: 10px;
+
+    }
+
+
+    h1 {
+
+        font-size: 24px;
+
+    }
+
+
+    .user-message {
+
+        margin-left: 25px;
+
+    }
+
+
+    .ai-message {
+
+        margin-right: 25px;
+
+    }
+
+
+    #mic {
+
+        width: 75px;
+
+        height: 75px;
+
+        font-size: 30px;
+
+    }
+
+}
