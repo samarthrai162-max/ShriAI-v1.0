@@ -65,7 +65,63 @@ function cleanSpeechText(text) {
 // ==========================================
 // ANDROID NATIVE TTS
 // ==========================================
+function speak(text) {
 
+    if (!text) {
+        return;
+    }
+
+    const spokenText = cleanSpeechText(text);
+
+    if (!spokenText) {
+        return;
+    }
+
+    // ==========================================
+    // ANDROID NATIVE TTS
+    // ==========================================
+
+    if (
+        typeof AndroidTTS !== "undefined" &&
+        typeof AndroidTTS.speak === "function"
+    ) {
+        try {
+            AndroidTTS.speak(spokenText);
+            return;
+        } catch (error) {
+            console.error(
+                "Android TTS failed:",
+                error
+            );
+        }
+    }
+
+    // ==========================================
+    // BROWSER TTS FALLBACK
+    // ==========================================
+
+    if (!("speechSynthesis" in window)) {
+        console.error(
+            "Speech synthesis is not supported."
+        );
+        return;
+    }
+
+    speechSynthesis.cancel();
+
+    const utterance =
+        new SpeechSynthesisUtterance(
+            spokenText
+        );
+
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    speechSynthesis.speak(
+        utterance
+    );
+}
 function speakNative(text) {
 
     const cleaned =
