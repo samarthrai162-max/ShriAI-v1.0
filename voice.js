@@ -1,202 +1,838 @@
-// ==========================================
-// Shri AI OS - Voice System v3
-// Android Native TTS + Web Speech
-// ==========================================
+// ============================================================
+// SHRI AI OS V1.5
+// PROFESSIONAL VOICE ENGINE
+// ============================================================
+//
+// Features:
+// • Android Native TTS
+// • Web Speech TTS fallback
+// • Speech Recognition
+// • Hinglish / Indian English support
+// • Wake-word cleanup
+// • Mic state management
+// • Duplicate speak prevention
+// • Safe error handling
+// • Config-based voice settings
+// • AndroidTTS bridge compatibility
+//
+// Android bridge name:
+//     AndroidTTS
+//
+// Expected external functions:
+//     addUserMessage()
+//     addAIMessage()
+//     processUserMessage()
+//     setStatus()
+// ============================================================
+
+
+"use strict";
+
+
+// ============================================================
+// GLOBAL STATE
+// ============================================================
 
 let recognition = null;
+
 let isListening = false;
+
+let isRecognitionStarting = false;
+
 let voices = [];
 
+let speechSupported = false;
 
-// ==========================================
-// LOAD VOICES
-// ==========================================
+let recognitionSupported = false;
+
+let lastSpokenText = "";
+
+let lastSpeechTime = 0;
+
+let recognitionRequestId = 0;
+
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+const SHRI_VOICE_DEFAULTS = {
+
+    language: "en-IN",
+
+    rate: 1.0,
+
+    pitch: 1.0,
+
+    volume: 1.0,
+
+    maxAlternatives: 1,
+
+    continuous: false,
+
+    interimResults: false
+
+};
+
+
+// ============================================================
+// SAFE CONFIG ACCESS
+// ============================================================
+
+function getVoiceConfig() {
+
+    const defaults = {
+        ...SHRI_VOICE_DEFAULTS
+    };
+
+    try {
+
+        if (
+            typeof SHRI_CONFIG !== "undefined" &&
+            SHRI_CONFIG &&
+            SHRI_CONFIG.voice
+        ) {
+
+            const config =
+                SHRI_CONFIG.voice;
+
+            if (
+                typeof config.language ===
+                "string" &&
+                config.language.trim()
+            ) {
+
+                defaults.language =
+                    config.language.trim();
+            }
+
+            if (
+                typeof config.rate ===
+                "number"
+            ) {
+
+                defaults.rate =
+                    clamp(
+                        config.rate,
+                        0.5,
+                        2.0
+                    );
+            }
+
+            if (
+                typeof config.pitch ===
+                "number"
+            ) {
+
+                defaults.pitch =
+                    clamp(
+                        config.pitch,
+                        0.5,
+                        2.0
+                    );
+            }
+
+            if (
+                typeof config.volume ===
+                "number"
+            ) {
+
+                defaults.volume =
+                    clamp(
+                        config.volume,
+                        0.0,
+                        1.0
+                    );
+            }
+
+            if (
+                typeof config.continuous ===
+                "boolean"
+            ) {
+
+                defaults.continuous =
+                    config.continuous;
+            }
+
+            if (
+                typeof config.interimResults ===
+                "boolean"
+            ) {
+
+                defaults.interimResults =
+                    config.interimResults;
+            }
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Shri voice config error:",
+            error
+        );
+    }
+
+    return defaults;
+}
+
+
+// ============================================================
+// NUMBER CLAMP
+// ============================================================
+
+function clamp(
+    value,
+    min,
+    max
+) {
+
+    return Math.min(
+        Math.max(
+            value,
+            min
+        ),
+        max
+    );
+}
+
+
+// ============================================================
+// SAFE STATUS
+// ============================================================
+
+function setVoiceStatus(
+    message
+) {
+
+    try {
+
+        if (
+            typeof setStatus ===
+            "function"
+        ) {
+
+            setStatus(
+                String(message)
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Status update failed:",
+            error
+        );
+    }
+}
+
+
+// ============================================================
+// MIC UI STATE
+// ============================================================
+
+function setMicListeningState(
+    listening
+) {
+
+    try {
+
+        const mic =
+            document.getElementById(
+                "mic"
+            );
+
+        if (!mic) {
+            return;
+        }
+
+        if (listening) {
+
+            mic.classList.add(
+                "listening"
+            );
+
+            mic.setAttribute(
+                "aria-pressed",
+                "true"
+            );
+
+        } else {
+
+            mic.classList.remove(
+                "listening"
+            );
+
+            mic.setAttribute(
+                "aria-pressed",
+                "false"
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Mic UI update failed:",
+            error
+        );
+    }
+}
+
+
+// ============================================================
+// SPEECH SYNTHESIS SUPPORT
+// ============================================================
+
+function isWebSpeechTTSAvailable() {
+
+    return (
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window &&
+        typeof SpeechSynthesisUtterance !==
+            "undefined"
+    );
+}
+
+
+// ============================================================
+// SPEECH RECOGNITION SUPPORT
+// ============================================================
+
+function getSpeechRecognitionConstructor() {
+
+    if (
+        typeof window ===
+        "undefined"
+    ) {
+
+        return null;
+    }
+
+    return (
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition ||
+        null
+    );
+}
+
+
+// ============================================================
+// LOAD AVAILABLE WEB VOICES
+// ============================================================
 
 function loadVoices() {
 
-    if (!("speechSynthesis" in window)) {
+    if (
+        !isWebSpeechTTSAvailable()
+    ) {
+
+        voices = [];
+
         return;
     }
 
-    voices = speechSynthesis.getVoices();
+    try {
 
-    console.log(
-        "Shri voices loaded:",
-        voices.length
-    );
+        voices =
+            speechSynthesis.getVoices()
+                || [];
+
+        console.log(
+            "Shri Web voices loaded:",
+            voices.length
+        );
+
+    } catch (error) {
+
+        voices = [];
+
+        console.warn(
+            "Unable to load Web voices:",
+            error
+        );
+    }
 }
 
 
-if ("speechSynthesis" in window) {
+// ============================================================
+// INITIALIZE WEB VOICE LIST
+// ============================================================
 
-    speechSynthesis.onvoiceschanged =
-        loadVoices;
+function initializeVoiceList() {
 
-    loadVoices();
+    if (
+        !isWebSpeechTTSAvailable()
+    ) {
+
+        return;
+    }
+
+    try {
+
+        speechSynthesis.onvoiceschanged =
+            loadVoices;
+
+        loadVoices();
+
+    } catch (error) {
+
+        console.warn(
+            "Voice list initialization failed:",
+            error
+        );
+    }
 }
 
 
-// ==========================================
-// CLEAN TEXT
-// ==========================================
+// ============================================================
+// CLEAN TEXT FOR SPEECH
+// ============================================================
 
-function cleanSpeechText(text) {
+function cleanSpeechText(
+    text
+) {
 
-    if (!text) {
+    if (
+        text === null ||
+        text === undefined
+    ) {
+
         return "";
     }
 
-    let cleaned = String(text);
+    let cleaned =
+        String(text);
 
-    cleaned = cleaned.replace(
-        /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu,
-        ""
-    );
 
-    cleaned = cleaned.replace(
-        /\s+/g,
-        " "
-    );
+    // --------------------------------------------------------
+    // Remove HTML
+    // --------------------------------------------------------
+
+    cleaned =
+        cleaned.replace(
+            /<[^>]*>/g,
+            " "
+        );
+
+
+    // --------------------------------------------------------
+    // Remove code fences
+    // --------------------------------------------------------
+
+    cleaned =
+        cleaned.replace(
+            /```[\s\S]*?```/g,
+            " "
+        );
+
+
+    // --------------------------------------------------------
+    // Remove markdown emphasis
+    // --------------------------------------------------------
+
+    cleaned =
+        cleaned.replace(
+            /[*_~`]/g,
+            ""
+        );
+
+
+    // --------------------------------------------------------
+    // Remove emoji / pictographic characters
+    // --------------------------------------------------------
+
+    try {
+
+        cleaned =
+            cleaned.replace(
+                /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu,
+                ""
+            );
+
+    } catch (error) {
+
+        // Older WebView fallback.
+        cleaned =
+            cleaned.replace(
+                /[\u{1F300}-\u{1FAFF}]/gu,
+                ""
+            );
+    }
+
+
+    // --------------------------------------------------------
+    // Normalize whitespace
+    // --------------------------------------------------------
+
+    cleaned =
+        cleaned.replace(
+            /\s+/g,
+            " "
+        );
+
+
+    // --------------------------------------------------------
+    // Remove excessive punctuation
+    // --------------------------------------------------------
+
+    cleaned =
+        cleaned.replace(
+            /([!?.,])\1{2,}/g,
+            "$1"
+        );
+
 
     return cleaned.trim();
 }
 
 
-// ==========================================
-// ANDROID NATIVE TTS
-// ==========================================
-function speak(text) {
+// ============================================================
+// CHECK WHETHER VOICE IS ENABLED
+// ============================================================
 
-    if (!text) {
-        return;
-    }
+function isVoiceEnabled() {
 
-    const spokenText = cleanSpeechText(text);
+    try {
 
-    if (!spokenText) {
-        return;
-    }
+        if (
+            typeof SHRI_CONFIG !==
+            "undefined" &&
+            SHRI_CONFIG &&
+            SHRI_CONFIG.voice &&
+            SHRI_CONFIG.voice.enabled ===
+                false
+        ) {
 
-    // ==========================================
-    // ANDROID NATIVE TTS
-    // ==========================================
-
-    if (
-        typeof AndroidTTS !== "undefined" &&
-        typeof AndroidTTS.speak === "function"
-    ) {
-        try {
-            AndroidTTS.speak(spokenText);
-            return;
-        } catch (error) {
-            console.error(
-                "Android TTS failed:",
-                error
-            );
+            return false;
         }
-    }
 
-    // ==========================================
-    // BROWSER TTS FALLBACK
-    // ==========================================
+    } catch (error) {
 
-    if (!("speechSynthesis" in window)) {
-        console.error(
-            "Speech synthesis is not supported."
+        console.warn(
+            "Voice config check failed:",
+            error
         );
-        return;
     }
 
-    speechSynthesis.cancel();
-
-    const utterance =
-        new SpeechSynthesisUtterance(
-            spokenText
-        );
-
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    speechSynthesis.speak(
-        utterance
-    );
-}
-function speakNative(text) {
-
-    const cleaned =
-        cleanSpeechText(text);
-
-    if (!cleaned) {
-        return false;
-    }
-
-    if (
-        typeof window.AndroidTTS !== "undefined" &&
-        typeof window.AndroidTTS.speak === "function"
-    ) {
-
-        try {
-
-            window.AndroidTTS.speak(
-                cleaned
-            );
-
-            console.log(
-                "Shri speaking using Android TTS"
-            );
-
-            return true;
-
-        } catch (error) {
-
-            console.error(
-                "Android TTS error:",
-                error
-            );
-        }
-    }
-
-    return false;
+    return true;
 }
 
 
-// ==========================================
-// WEBVIEW SPEECH SYNTHESIS FALLBACK
-// ==========================================
+// ============================================================
+// ANDROID TTS AVAILABILITY
+// ============================================================
 
-function speakWeb(text) {
+function isAndroidTTSAvailable() {
 
-    if (!("speechSynthesis" in window)) {
+    try {
+
+        return (
+            typeof window !==
+                "undefined" &&
+            typeof window.AndroidTTS !==
+                "undefined" &&
+            typeof window.AndroidTTS.speak ===
+                "function"
+        );
+
+    } catch (error) {
+
         return false;
     }
+}
 
-    const cleaned =
-        cleanSpeechText(text);
 
-    if (!cleaned) {
+// ============================================================
+// ANDROID TTS READY CHECK
+// ============================================================
+
+function isAndroidTTSReady() {
+
+    if (
+        !isAndroidTTSAvailable()
+    ) {
+
         return false;
     }
 
     try {
 
+        if (
+            typeof window.AndroidTTS
+                .isReady ===
+            "function"
+        ) {
+
+            return (
+                window.AndroidTTS
+                    .isReady() === true
+            );
+        }
+
+        // Older bridge versions may not
+        // expose isReady().
+        return true;
+
+    } catch (error) {
+
+        console.warn(
+            "Android TTS readiness check failed:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+// ============================================================
+// NATIVE ANDROID TTS
+// ============================================================
+
+function speakNative(
+    text
+) {
+
+    const cleaned =
+        cleanSpeechText(text);
+
+    if (!cleaned) {
+        return false;
+    }
+
+    if (
+        !isAndroidTTSAvailable()
+    ) {
+
+        return false;
+    }
+
+    try {
+
+        if (
+            !isAndroidTTSReady()
+        ) {
+
+            console.warn(
+                "Android TTS is not ready."
+            );
+
+            return false;
+        }
+
+
+        window.AndroidTTS.speak(
+            cleaned
+        );
+
+
+        console.log(
+            "Shri speaking with Android Native TTS"
+        );
+
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Android Native TTS error:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+// ============================================================
+// FIND BEST WEB VOICE
+// ============================================================
+
+function findPreferredVoice(
+    language
+) {
+
+    if (
+        !voices ||
+        voices.length === 0
+    ) {
+
+        return null;
+    }
+
+
+    const normalizedLanguage =
+        String(
+            language ||
+            "en-IN"
+        ).toLowerCase();
+
+
+    // --------------------------------------------------------
+    // Exact language match
+    // --------------------------------------------------------
+
+    let voice =
+        voices.find(
+            item => {
+
+                const lang =
+                    String(
+                        item.lang ||
+                        ""
+                    ).toLowerCase();
+
+                return (
+                    lang ===
+                    normalizedLanguage
+                );
+            }
+        );
+
+
+    if (voice) {
+        return voice;
+    }
+
+
+    // --------------------------------------------------------
+    // Indian English
+    // --------------------------------------------------------
+
+    voice =
+        voices.find(
+            item => {
+
+                const lang =
+                    String(
+                        item.lang ||
+                        ""
+                    ).toLowerCase();
+
+                return (
+                    lang.includes("en-in")
+                );
+            }
+        );
+
+
+    if (voice) {
+        return voice;
+    }
+
+
+    // --------------------------------------------------------
+    // Hindi
+    // --------------------------------------------------------
+
+    voice =
+        voices.find(
+            item => {
+
+                const lang =
+                    String(
+                        item.lang ||
+                        ""
+                    ).toLowerCase();
+
+                return (
+                    lang.startsWith("hi")
+                );
+            }
+        );
+
+
+    if (voice) {
+        return voice;
+    }
+
+
+    // --------------------------------------------------------
+    // English
+    // --------------------------------------------------------
+
+    voice =
+        voices.find(
+            item => {
+
+                const lang =
+                    String(
+                        item.lang ||
+                        ""
+                    ).toLowerCase();
+
+                return (
+                    lang.startsWith("en")
+                );
+            }
+        );
+
+
+    return voice || null;
+}
+
+
+// ============================================================
+// WEB TTS FALLBACK
+// ============================================================
+
+function speakWeb(
+    text
+) {
+
+    const cleaned =
+        cleanSpeechText(text);
+
+    if (!cleaned) {
+        return false;
+    }
+
+
+    if (
+        !isWebSpeechTTSAvailable()
+    ) {
+
+        console.error(
+            "Web Speech Synthesis is not supported."
+        );
+
+        return false;
+    }
+
+
+    const config =
+        getVoiceConfig();
+
+
+    try {
+
         speechSynthesis.cancel();
+
 
         const utterance =
             new SpeechSynthesisUtterance(
                 cleaned
             );
 
-        utterance.rate = 1;
-        utterance.pitch = 1;
-        utterance.volume = 1;
+
+        utterance.rate =
+            config.rate;
+
+        utterance.pitch =
+            config.pitch;
+
+        utterance.volume =
+            config.volume;
+
+        utterance.lang =
+            config.language;
+
 
         const preferredVoice =
-            voices.find(
-                voice =>
-                    /hindi|india|zira|samantha|female/i
-                        .test(voice.name)
+            findPreferredVoice(
+                config.language
             );
+
 
         if (preferredVoice) {
 
@@ -204,29 +840,40 @@ function speakWeb(text) {
                 preferredVoice;
         }
 
-        utterance.lang =
-            "en-IN";
 
         utterance.onstart =
             function () {
 
                 console.log(
-                    "Web TTS started"
+                    "Shri Web TTS started"
                 );
             };
+
+
+        utterance.onend =
+            function () {
+
+                console.log(
+                    "Shri Web TTS finished"
+                );
+            };
+
 
         utterance.onerror =
             function (event) {
 
                 console.error(
-                    "Web TTS error:",
-                    event.error
+                    "Shri Web TTS error:",
+                    event?.error ||
+                    "unknown"
                 );
             };
+
 
         speechSynthesis.speak(
             utterance
         );
+
 
         return true;
 
@@ -242,64 +889,97 @@ function speakWeb(text) {
 }
 
 
-// ==========================================
+// ============================================================
 // MAIN SPEAK FUNCTION
-// ==========================================
+// ============================================================
 
-function speak(text) {
+function speak(
+    text
+) {
+
+    if (!isVoiceEnabled()) {
+
+        console.log(
+            "Shri voice disabled."
+        );
+
+        return false;
+    }
+
 
     const cleaned =
         cleanSpeechText(text);
 
+
     if (!cleaned) {
-        return;
+        return false;
     }
 
+
+    // --------------------------------------------------------
+    // Prevent accidental duplicate speech
+    // --------------------------------------------------------
+
+    const now =
+        Date.now();
+
+
     if (
-        typeof SHRI_CONFIG !== "undefined" &&
-        SHRI_CONFIG.voice &&
-        SHRI_CONFIG.voice.enabled === false
+        cleaned === lastSpokenText &&
+        now - lastSpeechTime < 500
     ) {
 
         console.log(
-            "Shri voice disabled in config"
+            "Duplicate speech ignored."
         );
 
-        return;
+        return false;
     }
 
 
-    // ======================================
-    // FIRST: ANDROID NATIVE TTS
-    // ======================================
+    lastSpokenText =
+        cleaned;
 
-    const nativeStarted =
-        speakNative(cleaned);
+    lastSpeechTime =
+        now;
 
-    if (nativeStarted) {
-        return;
+
+    // --------------------------------------------------------
+    // Android Native TTS FIRST
+    // --------------------------------------------------------
+
+    if (
+        speakNative(cleaned)
+    ) {
+
+        return true;
     }
 
 
-    // ======================================
-    // FALLBACK: WEB TTS
-    // ======================================
+    // --------------------------------------------------------
+    // Browser TTS FALLBACK
+    // --------------------------------------------------------
 
-    speakWeb(cleaned);
+    return speakWeb(
+        cleaned
+    );
 }
 
 
-// ==========================================
-// STOP SPEAKING
-// ==========================================
+// ============================================================
+// STOP ALL SPEECH
+// ============================================================
 
 function stopSpeaking() {
 
     try {
 
         if (
-            typeof window.AndroidTTS !== "undefined" &&
-            typeof window.AndroidTTS.stop === "function"
+            typeof window !==
+                "undefined" &&
+            window.AndroidTTS &&
+            typeof window.AndroidTTS.stop ===
+                "function"
         ) {
 
             window.AndroidTTS.stop();
@@ -307,8 +987,8 @@ function stopSpeaking() {
 
     } catch (error) {
 
-        console.error(
-            "Native TTS stop error:",
+        console.warn(
+            "Android TTS stop failed:",
             error
         );
     }
@@ -316,266 +996,588 @@ function stopSpeaking() {
 
     try {
 
-        if ("speechSynthesis" in window) {
+        if (
+            isWebSpeechTTSAvailable()
+        ) {
 
             speechSynthesis.cancel();
         }
 
     } catch (error) {
 
-        console.error(
-            "Web TTS stop error:",
+        console.warn(
+            "Web TTS stop failed:",
             error
+        );
+    }
+
+
+    lastSpokenText = "";
+
+    lastSpeechTime = 0;
+}
+
+
+// ============================================================
+// EXTRACT USER MESSAGE
+// ============================================================
+
+function removeShriWakeWord(
+    text
+) {
+
+    if (!text) {
+        return "";
+    }
+
+
+    let message =
+        String(text)
+            .trim();
+
+
+    // --------------------------------------------------------
+    // Optional greetings + Shri
+    // --------------------------------------------------------
+
+    message =
+        message.replace(
+            /^(hey|hi|hello|ok|okay)?\s*(shri|sri|shree|siri)\s*[,:\-]?\s*/i,
+            ""
+        );
+
+
+    return message.trim();
+}
+
+
+// ============================================================
+// HANDLE RECOGNIZED SPEECH
+// ============================================================
+
+async function handleVoiceResult(
+    transcript
+) {
+
+    const originalText =
+        String(
+            transcript ||
+            ""
+        ).trim();
+
+
+    if (!originalText) {
+
+        setVoiceStatus(
+            "I didn't hear anything."
+        );
+
+        return;
+    }
+
+
+    console.log(
+        "Shri heard:",
+        originalText
+    );
+
+
+    // --------------------------------------------------------
+    // Show original user speech
+    // --------------------------------------------------------
+
+    try {
+
+        if (
+            typeof addUserMessage ===
+            "function"
+        ) {
+
+            addUserMessage(
+                originalText
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Unable to add user voice message:",
+            error
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // Remove optional wake word
+    // --------------------------------------------------------
+
+    const message =
+        removeShriWakeWord(
+            originalText
+        );
+
+
+    // --------------------------------------------------------
+    // User only said "Shri"
+    // --------------------------------------------------------
+
+    if (!message) {
+
+        const reply =
+            "Yes Samarth, I'm listening.";
+
+
+        try {
+
+            if (
+                typeof addAIMessage ===
+                "function"
+            ) {
+
+                addAIMessage(
+                    reply
+                );
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Unable to add AI message:",
+                error
+            );
+        }
+
+
+        speak(reply);
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // AI processing
+    // --------------------------------------------------------
+
+    let reply = null;
+
+
+    try {
+
+        if (
+            typeof processUserMessage ===
+            "function"
+        ) {
+
+            reply =
+                await processUserMessage(
+                    message
+                );
+
+        } else {
+
+            reply =
+                "Sorry, my AI brain is not connected yet.";
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Voice AI processing error:",
+            error
+        );
+
+        reply =
+            "Sorry, something went wrong while processing that.";
+    }
+
+
+    // --------------------------------------------------------
+    // AI response
+    // --------------------------------------------------------
+
+    if (
+        reply !== null &&
+        reply !== undefined &&
+        String(reply).trim()
+    ) {
+
+        const response =
+            String(reply).trim();
+
+
+        try {
+
+            if (
+                typeof addAIMessage ===
+                "function"
+            ) {
+
+                addAIMessage(
+                    response
+                );
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Unable to add AI response:",
+                error
+            );
+        }
+
+
+        speak(response);
+
+
+    } else {
+
+        const fallback =
+            "I'm still learning that. Try asking me something else.";
+
+
+        try {
+
+            if (
+                typeof addAIMessage ===
+                "function"
+            ) {
+
+                addAIMessage(
+                    fallback
+                );
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Unable to add fallback response:",
+                error
+            );
+        }
+
+
+        speak(
+            fallback
         );
     }
 }
 
 
-// ==========================================
+// ============================================================
 // INITIALIZE SPEECH RECOGNITION
-// ==========================================
+// ============================================================
 
 function initVoiceRecognition() {
 
+    if (recognition) {
+
+        return true;
+    }
+
+
     const SpeechRecognition =
-        window.SpeechRecognition ||
-        window.webkitSpeechRecognition;
+        getSpeechRecognitionConstructor();
+
 
     if (!SpeechRecognition) {
 
+        recognitionSupported =
+            false;
+
+
         console.error(
-            "Speech Recognition is not supported."
+            "Speech Recognition is not supported by this WebView."
         );
 
-        if (
-            typeof setStatus === "function"
-        ) {
 
-            setStatus(
-                "Voice recognition not supported"
-            );
-        }
+        setVoiceStatus(
+            "Voice recognition not supported"
+        );
+
 
         return false;
     }
 
 
-    recognition =
-        new SpeechRecognition();
+    recognitionSupported =
+        true;
 
+
+    try {
+
+        recognition =
+            new SpeechRecognition();
+
+    } catch (error) {
+
+        console.error(
+            "Unable to create SpeechRecognition:",
+            error
+        );
+
+        recognition =
+            null;
+
+        return false;
+    }
+
+
+    const config =
+        getVoiceConfig();
+
+
+    // --------------------------------------------------------
+    // Recognition configuration
+    // --------------------------------------------------------
 
     recognition.lang =
-        "en-IN";
+        config.language;
+
 
     recognition.continuous =
         false;
 
+
     recognition.interimResults =
-        false;
+        config.interimResults;
+
 
     recognition.maxAlternatives =
-        1;
+        config.maxAlternatives;
 
+
+    // ========================================================
+    // ON START
+    // ========================================================
 
     recognition.onstart =
         function () {
 
-            isListening = true;
+            isListening =
+                true;
 
-            if (
-                typeof setStatus === "function"
-            ) {
+            isRecognitionStarting =
+                false;
 
-                setStatus(
-                    "🎙️ Listening..."
-                );
-            }
 
-            const mic =
-                document.getElementById("mic");
+            setMicListeningState(
+                true
+            );
 
-            if (mic) {
 
-                mic.classList.add(
-                    "listening"
-                );
-            }
+            setVoiceStatus(
+                "🎙️ Listening..."
+            );
+
+
+            console.log(
+                "Shri voice recognition started."
+            );
         };
 
+
+    // ========================================================
+    // ON RESULT
+    // ========================================================
 
     recognition.onresult =
         async function (event) {
 
+            const requestId =
+                ++recognitionRequestId;
+
+
             try {
 
-                let transcript =
-                    event
-                        .results[0][0]
-                        .transcript
-                        .trim();
+                if (
+                    !event ||
+                    !event.results ||
+                    !event.results.length
+                ) {
+
+                    return;
+                }
+
+
+                const result =
+                    event.results[
+                        event.results.length - 1
+                    ];
+
+
+                if (
+                    !result ||
+                    !result[0]
+                ) {
+
+                    return;
+                }
+
+
+                const transcript =
+                    String(
+                        result[0].transcript ||
+                        ""
+                    ).trim();
+
 
                 if (!transcript) {
+
                     return;
                 }
 
 
                 console.log(
-                    "User said:",
+                    "Voice transcript:",
                     transcript
                 );
 
 
+                await handleVoiceResult(
+                    transcript
+                );
+
+
+                // Ignore stale async result.
                 if (
-                    typeof addUserMessage ===
-                    "function"
+                    requestId !==
+                    recognitionRequestId
                 ) {
-
-                    addUserMessage(
-                        transcript
-                    );
-                }
-
-
-                let message =
-                    transcript;
-
-
-                message =
-                    message.replace(
-                        /^(hey|hi|hello)?\s*(shri|sri|shree|siri)[\s,]*/i,
-                        ""
-                    )
-                    .trim();
-
-
-                if (!message) {
-
-                    const reply =
-                        "Yes Samarth, I'm listening.";
-
-                    if (
-                        typeof addAIMessage ===
-                        "function"
-                    ) {
-
-                        addAIMessage(
-                            reply
-                        );
-                    }
-
-                    speak(reply);
 
                     return;
-                }
-
-
-                let reply = null;
-
-
-                if (
-                    typeof processUserMessage ===
-                    "function"
-                ) {
-
-                    reply =
-                        await processUserMessage(
-                            message
-                        );
-
-                } else {
-
-                    reply =
-                        "Sorry, my brain is not connected yet.";
-                }
-
-
-                if (reply) {
-
-                    if (
-                        typeof addAIMessage ===
-                        "function"
-                    ) {
-
-                        addAIMessage(
-                            reply
-                        );
-                    }
-
-                    speak(reply);
-
-                } else {
-
-                    const fallback =
-                        "I'm still learning that. Try asking me something else.";
-
-                    if (
-                        typeof addAIMessage ===
-                        "function"
-                    ) {
-
-                        addAIMessage(
-                            fallback
-                        );
-                    }
-
-                    speak(fallback);
                 }
 
             } catch (error) {
 
                 console.error(
-                    "Voice result error:",
+                    "Voice result handling failed:",
                     error
+                );
+
+
+                setVoiceStatus(
+                    "Voice processing error"
                 );
             }
         };
 
+
+    // ========================================================
+    // ON ERROR
+    // ========================================================
 
     recognition.onerror =
         function (event) {
 
-            console.error(
-                "Voice recognition error:",
-                event.error
+            isListening =
+                false;
+
+            isRecognitionStarting =
+                false;
+
+
+            setMicListeningState(
+                false
             );
 
-            if (
-                typeof setStatus ===
-                "function"
+
+            const errorCode =
+                event?.error ||
+                "unknown";
+
+
+            console.error(
+                "Shri voice recognition error:",
+                errorCode
+            );
+
+
+            switch (
+                errorCode
             ) {
 
-                setStatus(
-                    "Voice error: " +
-                    event.error
-                );
+                case "not-allowed":
+                case "service-not-allowed":
+
+                    setVoiceStatus(
+                        "Microphone permission required"
+                    );
+
+                    break;
+
+
+                case "audio-capture":
+
+                    setVoiceStatus(
+                        "Microphone unavailable"
+                    );
+
+                    break;
+
+
+                case "no-speech":
+
+                    setVoiceStatus(
+                        "No speech detected"
+                    );
+
+                    break;
+
+
+                case "network":
+
+                    setVoiceStatus(
+                        "Voice service unavailable"
+                    );
+
+                    break;
+
+
+                case "aborted":
+
+                    setVoiceStatus(
+                        "Ready to Listen..."
+                    );
+
+                    break;
+
+
+                default:
+
+                    setVoiceStatus(
+                        "Voice error"
+                    );
             }
         };
 
 
+    // ========================================================
+    // ON END
+    // ========================================================
+
     recognition.onend =
         function () {
 
-            isListening = false;
+            isListening =
+                false;
 
-            const mic =
-                document.getElementById("mic");
+            isRecognitionStarting =
+                false;
 
-            if (mic) {
 
-                mic.classList.remove(
-                    "listening"
-                );
-            }
+            setMicListeningState(
+                false
+            );
 
-            if (
-                typeof setStatus ===
-                "function"
-            ) {
 
-                setStatus(
-                    "Ready to Listen..."
-                );
-            }
+            setVoiceStatus(
+                "Ready to Listen..."
+            );
+
+
+            console.log(
+                "Shri voice recognition ended."
+            );
         };
 
 
@@ -583,36 +1585,118 @@ function initVoiceRecognition() {
 }
 
 
-// ==========================================
-// START / STOP LISTENING
-// ==========================================
+// ============================================================
+// START LISTENING
+// ============================================================
 
 function startListening() {
 
-    if (!recognition) {
+    if (
+        isRecognitionStarting
+    ) {
 
-        const ready =
+        console.log(
+            "Recognition is already starting."
+        );
+
+        return false;
+    }
+
+
+    if (
+        isListening
+    ) {
+
+        stopListening();
+
+        return false;
+    }
+
+
+    if (
+        !recognition
+    ) {
+
+        const initialized =
             initVoiceRecognition();
 
-        if (!ready) {
-            return;
+
+        if (!initialized) {
+
+            return false;
         }
     }
 
 
-    if (isListening) {
+    try {
 
-        try {
+        // Stop browser TTS before listening.
+        stopSpeaking();
 
-            recognition.stop();
 
-        } catch (error) {
+        isRecognitionStarting =
+            true;
 
-            console.error(
-                "Stop recognition error:",
-                error
-            );
-        }
+
+        setVoiceStatus(
+            "Starting microphone..."
+        );
+
+
+        recognition.start();
+
+
+        return true;
+
+    } catch (error) {
+
+        isRecognitionStarting =
+            false;
+
+        isListening =
+            false;
+
+
+        console.error(
+            "Could not start voice recognition:",
+            error
+        );
+
+
+        setMicListeningState(
+            false
+        );
+
+
+        setVoiceStatus(
+            "Ready to Listen..."
+        );
+
+
+        return false;
+    }
+}
+
+
+// ============================================================
+// STOP LISTENING
+// ============================================================
+
+function stopListening() {
+
+    if (
+        !recognition
+    ) {
+
+        isListening =
+            false;
+
+        isRecognitionStarting =
+            false;
+
+        setMicListeningState(
+            false
+        );
 
         return;
     }
@@ -620,32 +1704,150 @@ function startListening() {
 
     try {
 
-        recognition.start();
+        recognition.stop();
 
     } catch (error) {
 
-        console.error(
-            "Could not start recognition:",
+        console.warn(
+            "Recognition stop failed:",
             error
         );
 
-        if (
-            typeof setStatus ===
-            "function"
-        ) {
+        isListening =
+            false;
 
-            setStatus(
-                "Ready to Listen..."
-            );
-        }
+        isRecognitionStarting =
+            false;
+
+        setMicListeningState(
+            false
+        );
+
+        setVoiceStatus(
+            "Ready to Listen..."
+        );
     }
 }
 
 
-// ==========================================
-// READY
-// ==========================================
+// ============================================================
+// DESTROY / RESET VOICE SYSTEM
+// ============================================================
+
+function destroyVoiceSystem() {
+
+    try {
+
+        if (recognition) {
+
+            recognition.onstart = null;
+            recognition.onresult = null;
+            recognition.onerror = null;
+            recognition.onend = null;
+
+
+            try {
+                recognition.stop();
+            } catch (_) {
+                // Ignore.
+            }
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Recognition cleanup failed:",
+            error
+        );
+    }
+
+
+    recognition =
+        null;
+
+    isListening =
+        false;
+
+    isRecognitionStarting =
+        false;
+
+
+    stopSpeaking();
+
+
+    setMicListeningState(
+        false
+    );
+}
+
+
+// ============================================================
+// VOICE SYSTEM STATUS
+// ============================================================
+
+function getVoiceSystemStatus() {
+
+    return {
+
+        recognitionSupported:
+            recognitionSupported,
+
+        ttsSupported:
+            isWebSpeechTTSAvailable(),
+
+        androidTTS:
+            isAndroidTTSAvailable(),
+
+        androidTTSReady:
+            isAndroidTTSReady(),
+
+        listening:
+            isListening,
+
+        voices:
+            voices.length
+    };
+}
+
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+initializeVoiceList();
+
+
+recognitionSupported =
+    !!getSpeechRecognitionConstructor();
+
+
+speechSupported =
+    isWebSpeechTTSAvailable();
+
 
 console.log(
-    "Shri Voice System v3 loaded successfully."
+    "=========================================="
+);
+
+console.log(
+    "Shri AI OS V1.5 Voice Engine initialized."
+);
+
+console.log(
+    "Recognition:",
+    recognitionSupported
+);
+
+console.log(
+    "Web TTS:",
+    speechSupported
+);
+
+console.log(
+    "Android TTS:",
+    isAndroidTTSAvailable()
+);
+
+console.log(
+    "=========================================="
 );
