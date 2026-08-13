@@ -73,6 +73,19 @@ async function askGemini(message) {
             `https://generativelanguage.googleapis.com/v1beta/models/${SHRI_CONFIG.gemini.model}:generateContent?key=${SHRI_CONFIG.gemini.apiKey}`;
 
 
+        const userName =
+            typeof getCurrentUserName ===
+            "function"
+                ? getCurrentUserName()
+                : null;
+
+
+        const identity =
+            userName
+                ? `a friendly Hinglish personal assistant for ${userName}`
+                : "a friendly Hinglish personal assistant";
+
+
         const response =
             await fetch(
                 url,
@@ -96,7 +109,7 @@ async function askGemini(message) {
                                     {
 
                                         text:
-                                            `You are Shri AI, a friendly Hinglish personal assistant for Samarth. Be helpful, respectful and concise.
+                                            `You are Shri AI, ${identity}. Be helpful, respectful and concise.
 
 User: ${message}`
 
