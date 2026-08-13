@@ -1,6 +1,6 @@
 // ==========================================
 // SHRI AI OS - BRAIN.JS
-// Complete Brain System
+// Multi-User Brain System
 // ==========================================
 
 
@@ -36,22 +36,226 @@ function getDate() {
 
 
 // ==========================================
+// CURRENT USER
+// ==========================================
+
+function getSafeUserName() {
+
+    try {
+
+        if (
+            typeof getCurrentUserName ===
+            "function"
+        ) {
+
+            return getCurrentUserName();
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "User name lookup failed:",
+            error
+        );
+
+    }
+
+    return null;
+}
+
+
+// ==========================================
 // GREETING
 // ==========================================
 
 function getGreeting() {
 
-    const hour = new Date().getHours();
+    const hour =
+        new Date().getHours();
+
+    const userName =
+        getSafeUserName();
+
+
+    let greeting;
+
 
     if (hour < 12) {
-        return `🌞 Good Morning, ${USER_NAME}!`;
+
+        greeting =
+            "🌞 Good Morning";
+
+    } else if (hour < 17) {
+
+        greeting =
+            "☀️ Good Afternoon";
+
+    } else {
+
+        greeting =
+            "🌙 Good Evening";
+
     }
 
-    if (hour < 17) {
-        return `☀️ Good Afternoon, ${USER_NAME}!`;
+
+    if (userName) {
+
+        return `${greeting}, ${userName}!`;
+
     }
 
-    return `🌙 Good Evening, ${USER_NAME}!`;
+
+    return `${greeting}!`;
+
+}
+
+
+// ==========================================
+// EXTRACT NAME
+// ==========================================
+
+function extractUserName(text) {
+
+    if (!text) {
+        return null;
+    }
+
+
+    const original =
+        String(text).trim();
+
+
+    let match;
+
+
+    // My name is Rahul
+    match =
+        original.match(
+            /\bmy\s+name\s+is\s+([a-zA-Z][a-zA-Z\s'-]{1,30})/i
+        );
+
+
+    if (match) {
+
+        return cleanUserName(
+            match[1]
+        );
+
+    }
+
+
+    // I am Rahul
+    match =
+        original.match(
+            /\bi\s+am\s+([a-zA-Z][a-zA-Z\s'-]{1,30})/i
+        );
+
+
+    if (match) {
+
+        return cleanUserName(
+            match[1]
+        );
+
+    }
+
+
+    // I'm Rahul
+    match =
+        original.match(
+            /\bi['’]?m\s+([a-zA-Z][a-zA-Z\s'-]{1,30})/i
+        );
+
+
+    if (match) {
+
+        return cleanUserName(
+            match[1]
+        );
+
+    }
+
+
+    // Mera naam Rahul hai
+    match =
+        original.match(
+            /mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{1,30})(?:\s+hai)?/i
+        );
+
+
+    if (match) {
+
+        return cleanUserName(
+            match[1]
+        );
+
+    }
+
+
+    // Mera naam Rahul
+    match =
+        original.match(
+            /mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{1,30})/i
+        );
+
+
+    if (match) {
+
+        return cleanUserName(
+            match[1]
+        );
+
+    }
+
+
+    return null;
+
+}
+
+
+// ==========================================
+// CLEAN USER NAME
+// ==========================================
+
+function cleanUserName(name) {
+
+    if (!name) {
+        return null;
+    }
+
+
+    let clean =
+        String(name)
+            .replace(
+                /\b(is|hai|hoon|hun|h|please|pls)\b/gi,
+                " "
+            )
+            .replace(
+                /\s+/g,
+                " "
+            )
+            .trim();
+
+
+    if (!clean) {
+        return null;
+    }
+
+
+    // Avoid accidentally saving long sentences.
+    if (clean.length > 30) {
+        return null;
+    }
+
+
+    // Name should contain letters.
+    if (!/[a-zA-Z]/.test(clean)) {
+        return null;
+    }
+
+
+    return clean;
 
 }
 
@@ -65,80 +269,76 @@ function calculateExpression(expression) {
     if (!expression) return null;
 
 
-    let cleaned = expression
-        .toLowerCase()
-        .trim();
+    let cleaned =
+        expression
+            .toLowerCase()
+            .trim();
 
 
-    // Remove common phrases
-
-    cleaned = cleaned
-        .replace(/what is/gi, "")
-        .replace(/calculate/gi, "")
-        .replace(/kitna hota hai/gi, "")
-        .replace(/kitne hote hain/gi, "")
-        .replace(/answer batao/gi, "")
-        .replace(/answer bata/gi, "")
-        .replace(/ka answer/gi, "")
-        .replace(/ka jawab/gi, "")
-        .replace(/hai/gi, "")
-        .replace(/hoga/gi, "");
-
-
-    // ======================================
-    // MATH WORDS
-    // ======================================
-
-    cleaned = cleaned
-        .replace(/multiplied by/gi, "*")
-        .replace(/multiply by/gi, "*")
-        .replace(/times/gi, "*")
-        .replace(/into/gi, "*")
-        .replace(/guna/gi, "*")
-        .replace(/गुना/g, "*")
-
-        .replace(/divided by/gi, "/")
-        .replace(/divide by/gi, "/")
-        .replace(/divided/gi, "/")
-        .replace(/divide/gi, "/")
-        .replace(/bhaag/gi, "/")
-        .replace(/भाग/g, "/")
-
-        .replace(/plus/gi, "+")
-        .replace(/add/gi, "+")
-        .replace(/jod/gi, "+")
-        .replace(/जोड़/g, "+")
-
-        .replace(/minus/gi, "-")
-        .replace(/subtract/gi, "-")
-        .replace(/ghata/gi, "-")
-        .replace(/घटा/g, "-")
-
-        .replace(/percent/gi, "%")
-        .replace(/percentage/gi, "%");
+    cleaned =
+        cleaned
+            .replace(/what is/gi, "")
+            .replace(/calculate/gi, "")
+            .replace(/kitna hota hai/gi, "")
+            .replace(/kitne hote hain/gi, "")
+            .replace(/answer batao/gi, "")
+            .replace(/answer bata/gi, "")
+            .replace(/ka answer/gi, "")
+            .replace(/ka jawab/gi, "")
+            .replace(/hai/gi, "")
+            .replace(/hoga/gi, "");
 
 
-    // ======================================
-    // HINDI CONNECTING WORDS
-    // ======================================
+    cleaned =
+        cleaned
+            .replace(/multiplied by/gi, "*")
+            .replace(/multiply by/gi, "*")
+            .replace(/times/gi, "*")
+            .replace(/into/gi, "*")
+            .replace(/guna/gi, "*")
+            .replace(/गुना/g, "*")
 
-    cleaned = cleaned
-        .replace(/\bko\b/gi, "")
-        .replace(/\bse\b/gi, "")
-        .replace(/\bka\b/gi, "")
-        .replace(/\bki\b/gi, "")
-        .replace(/\bke\b/gi, "")
-        .replace(/\banswer\b/gi, "")
-        .replace(/\banswer kya hai\b/gi, "")
-        .replace(/\bkitna\b/gi, "")
-        .replace(/\bkitni\b/gi, "");
+            .replace(/divided by/gi, "/")
+            .replace(/divide by/gi, "/")
+            .replace(/divided/gi, "/")
+            .replace(/divide/gi, "/")
+            .replace(/bhaag/gi, "/")
+            .replace(/भाग/g, "/")
+
+            .replace(/plus/gi, "+")
+            .replace(/add/gi, "+")
+            .replace(/jod/gi, "+")
+            .replace(/जोड़/g, "+")
+
+            .replace(/minus/gi, "-")
+            .replace(/subtract/gi, "-")
+            .replace(/ghata/gi, "-")
+            .replace(/घटा/g, "-")
+
+            .replace(/percent/gi, "%")
+            .replace(/percentage/gi, "%");
 
 
-    // Keep only safe mathematical characters
+    cleaned =
+        cleaned
+            .replace(/\bko\b/gi, "")
+            .replace(/\bse\b/gi, "")
+            .replace(/\bka\b/gi, "")
+            .replace(/\bki\b/gi, "")
+            .replace(/\bke\b/gi, "")
+            .replace(/\banswer\b/gi, "")
+            .replace(/\banswer kya hai\b/gi, "")
+            .replace(/\bkitna\b/gi, "")
+            .replace(/\bkitni\b/gi, "");
 
-    cleaned = cleaned
-        .replace(/[^0-9+\-*/().%\s]/g, "")
-        .trim();
+
+    cleaned =
+        cleaned
+            .replace(
+                /[^0-9+\-*/().%\s]/g,
+                ""
+            )
+            .trim();
 
 
     if (!cleaned) {
@@ -146,14 +346,10 @@ function calculateExpression(expression) {
     }
 
 
-    // Must contain a number
-
     if (!/\d/.test(cleaned)) {
         return null;
     }
 
-
-    // Must contain a mathematical operator
 
     if (!/[+\-*/%]/.test(cleaned)) {
         return null;
@@ -209,6 +405,107 @@ function handleBrain(message) {
 
     const text =
         original.toLowerCase().trim();
+
+
+    // ======================================
+    // USER NAME SETTING
+    // ======================================
+
+    const detectedName =
+        extractUserName(
+            original
+        );
+
+
+    if (detectedName) {
+
+        try {
+
+            if (
+                typeof setCurrentUserName ===
+                "function"
+            ) {
+
+                const saved =
+                    setCurrentUserName(
+                        detectedName
+                    );
+
+
+                if (saved) {
+
+                    return `Nice to meet you, ${detectedName}! 😊 I'll remember your name.`;
+
+                }
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Name save error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // ======================================
+    // ASK MY NAME
+    // ======================================
+
+    if (
+        text.includes("what is my name") ||
+        text.includes("what's my name") ||
+        text.includes("mera naam kya hai") ||
+        text.includes("mera naam batao") ||
+        text.includes("do you know my name")
+    ) {
+
+        const userName =
+            getSafeUserName();
+
+
+        if (userName) {
+
+            return `Your name is ${userName}.`;
+
+        }
+
+
+        return "I don't know your name yet. What should I call you?";
+
+    }
+
+
+    // ======================================
+    // FIRST USER
+    // ======================================
+
+    const userName =
+        getSafeUserName();
+
+
+    if (!userName) {
+
+        if (
+            /^(hi|hello|hey|namaste|namaskar)\b/i.test(text) ||
+            text.includes("hey shri") ||
+            text.includes("hello shri") ||
+            text.includes("hi shri")
+        ) {
+
+            return `${getGreeting()}
+
+I'm ${AI_NAME}.
+
+What should I call you?`;
+
+        }
+
+    }
 
 
     // ======================================
@@ -311,10 +608,6 @@ How can I help you?`;
     // ======================================
     // TIME
     // ======================================
-
-    // IMPORTANT:
-    // Hindi/Hinglish time commands are handled
-    // DIRECTLY without translator.
 
     const askingTime =
         text.includes("what time") ||
@@ -483,7 +776,18 @@ How can I help you?`;
         text.includes("dhanyawad")
     ) {
 
-        return "You're welcome, Samarth! 😊";
+        const name =
+            getSafeUserName();
+
+
+        if (name) {
+
+            return `You're welcome, ${name}! 😊`;
+
+        }
+
+
+        return "You're welcome! 😊";
 
     }
 
@@ -497,48 +801,6 @@ How can I help you?`;
 }
 
 
-console.log("Shri Brain.js loaded successfully.");
-// ==========================================
-// VOICE → BRAIN CONNECTION
-// ==========================================
-
-async function processUserMessage(message) {
-
-    if (!message || !message.trim()) {
-        return "Yes Samarth? 😊";
-    }
-
-    try {
-
-        const reply = handleBrain(message);
-
-        if (reply) {
-            return reply;
-        }
-
-        return "I'm still learning that. Try asking me something else.";
-
-    } catch (error) {
-
-        console.error(
-            "processUserMessage error:",
-            error
-        );
-
-        return "Sorry Samarth, something went wrong.";
-
-    }
-
-}
-
-
-// Make function globally available
-window.processUserMessage = processUserMessage;
-
 console.log(
-    "processUserMessage connected:",
-    typeof window.processUserMessage
+    "Shri Brain.js loaded successfully."
 );
-console.log("TEST MEMORY SAVE:", rememberFact("TEST_COLOR", "blue"));
-console.log("TEST MEMORY RECALL:", recallFact("TEST_COLOR"));
-console.log("ALL MEMORY:", getMemory());
