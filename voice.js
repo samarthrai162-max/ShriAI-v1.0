@@ -1123,8 +1123,15 @@ async function handleVoiceResult(
 
     if (!message) {
 
-        const reply =
-            "Yes Samarth, I'm listening.";
+        const userName =
+    typeof getCurrentUserName === "function"
+        ? getCurrentUserName()
+        : null;
+
+const reply =
+    userName
+        ? `Yes ${userName}, I'm listening.`
+        : "Yes, I'm listening. What should I call you?";
 
 
         try {
