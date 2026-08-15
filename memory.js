@@ -1,32 +1,69 @@
-// ===============================
-// Shri AI - Memory System
-// ===============================
+// ==========================================
+// SHRI AI OS
+// MEMORY SYSTEM
+// V4.0 PROFESSIONAL
+// CORE STORAGE + SAFE STORAGE + CONTEXT
+// ==========================================
 
 const MEMORY_KEY = "SHRI_AI_MEMORY";
+const MEMORY_VERSION = 4;
 
+
+// ==========================================
+// GET ALL MEMORY
+// ==========================================
 
 function getMemory() {
 
     try {
 
-        const data = localStorage.getItem(MEMORY_KEY);
+        const data =
+            localStorage.getItem(MEMORY_KEY);
 
-        return data ? JSON.parse(data) : {};
+        if (!data) {
+            return {};
+        }
+
+        const memory =
+            JSON.parse(data);
+
+        if (
+            !memory ||
+            typeof memory !== "object" ||
+            Array.isArray(memory)
+        ) {
+            return {};
+        }
+
+        return memory;
 
     } catch (error) {
 
-        console.error("Memory read error:", error);
+        console.error(
+            "SHRI Memory Read Error:",
+            error
+        );
 
         return {};
-
     }
-
 }
 
+
+// ==========================================
+// SAVE ALL MEMORY
+// ==========================================
 
 function saveMemory(memory) {
 
     try {
+
+        if (
+            !memory ||
+            typeof memory !== "object" ||
+            Array.isArray(memory)
+        ) {
+            return false;
+        }
 
         localStorage.setItem(
             MEMORY_KEY,
@@ -37,68 +74,387 @@ function saveMemory(memory) {
 
     } catch (error) {
 
-        console.error("Memory save error:", error);
+        console.error(
+            "SHRI Memory Save Error:",
+            error
+        );
 
         return false;
-
     }
-
 }
 
+
+// ==========================================
+// NORMALIZE MEMORY KEY
+// ==========================================
+
+function normalizeMemoryKey(key) {
+
+    if (
+        key === null ||
+        key === undefined
+    ) {
+        return "";
+    }
+
+    return String(key)
+        .toLowerCase()
+        .trim()
+
+        .replace(/['’]/g, "")
+
+        .replace(
+            /favourite/g,
+            "favorite"
+        )
+
+        .replace(
+            /colour/g,
+            "color"
+        )
+
+        .replace(
+            /[?.!,]/g,
+            ""
+        )
+
+        .replace(
+            /\s+/g,
+            ""
+        );
+}
+
+
+// ==========================================
+// CLEAN STORED VALUE
+// ==========================================
+
+function cleanStoredMemoryValue(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+
+// ==========================================
+// REMEMBER
+// ==========================================
 
 function remember(key, value) {
 
-    const memory = getMemory();
+    const normalizedKey =
+        normalizeMemoryKey(key);
 
-    memory[key] = value;
+    const cleanValue =
+        cleanStoredMemoryValue(value);
 
-    saveMemory(memory);
+    if (
+        !normalizedKey ||
+        !cleanValue
+    ) {
+        return false;
+    }
 
+    try {
+
+        const memory =
+            getMemory();
+
+        memory[normalizedKey] =
+            cleanValue;
+
+        return saveMemory(memory);
+
+    } catch (error) {
+
+        console.error(
+            "SHRI Remember Error:",
+            error
+        );
+
+        return false;
+    }
 }
 
+
+// ==========================================
+// RECALL
+// ==========================================
 
 function recall(key) {
 
-    const memory = getMemory();
+    const normalizedKey =
+        normalizeMemoryKey(key);
 
-    return memory[key] ?? null;
+    if (!normalizedKey) {
+        return null;
+    }
 
+    try {
+
+        const memory =
+            getMemory();
+
+        if (
+            !Object.prototype.hasOwnProperty.call(
+                memory,
+                normalizedKey
+            )
+        ) {
+            return null;
+        }
+
+        const value =
+            memory[normalizedKey];
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return null;
+        }
+
+        return String(value).trim() || null;
+
+    } catch (error) {
+
+        console.error(
+            "SHRI Recall Error:",
+            error
+        );
+
+        return null;
+    }
 }
 
+
+// ==========================================
+// REMEMBER FACT
+// ==========================================
 
 function rememberFact(key, value) {
 
-    remember(key, value);
-
+    return remember(
+        key,
+        value
+    );
 }
 
+
+// ==========================================
+// RECALL FACT
+// ==========================================
 
 function recallFact(key) {
 
     return recall(key);
-
 }
 
+
+// ==========================================
+// HAS MEMORY
+// ==========================================
+
+function hasMemory(key) {
+
+    const value =
+        recall(key);
+
+    return (
+        value !== null &&
+        value !== undefined &&
+        String(value).trim() !== ""
+    );
+}
+
+
+// ==========================================
+// FORGET ONE MEMORY
+// ==========================================
+
+function forgetMemory(key) {
+
+    const normalizedKey =
+        normalizeMemoryKey(key);
+
+    if (!normalizedKey) {
+        return false;
+    }
+
+    try {
+
+        const memory =
+            getMemory();
+
+        if (
+            !Object.prototype.hasOwnProperty.call(
+                memory,
+                normalizedKey
+            )
+        ) {
+            return false;
+        }
+
+        delete memory[normalizedKey];
+
+        return saveMemory(memory);
+
+    } catch (error) {
+
+        console.error(
+            "SHRI Forget Error:",
+            error
+        );
+
+        return false;
+    }
+}
+
+
+// ==========================================
+// UPDATE MEMORY
+// ==========================================
+// Task 1:
+// Existing value ko safely replace/update karta hai.
+// ==========================================
+
+function updateMemory(key, value) {
+
+    return remember(
+        key,
+        value
+    );
+}
+
+
+// ==========================================
+// FORGET MANY
+// ==========================================
+
+function forgetMemories(keys) {
+
+    if (!Array.isArray(keys)) {
+        return false;
+    }
+
+    let changed = false;
+
+    for (const key of keys) {
+
+        if (
+            forgetMemory(key)
+        ) {
+            changed = true;
+        }
+    }
+
+    return changed;
+}
+
+
+// ==========================================
+// CLEAR ALL MEMORY
+// ==========================================
 
 function clearMemory() {
 
-    localStorage.removeItem(MEMORY_KEY);
+    try {
 
+        localStorage.removeItem(
+            MEMORY_KEY
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "SHRI Clear Memory Error:",
+            error
+        );
+
+        return false;
+    }
 }
 
 
-console.log("Memory.js loaded.");
 // ==========================================
-// SHRI AI OS - MEMORY INTELLIGENCE LAYER
+// MEMORY COUNT
 // ==========================================
 
-// ------------------------------------------
-// SAVE CONTEXT
-// ------------------------------------------
+function getMemoryCount() {
+
+    try {
+
+        return Object.keys(
+            getMemory()
+        ).length;
+
+    } catch (error) {
+
+        return 0;
+    }
+}
+
+
+// ==========================================
+// DEBUG
+// ==========================================
+
+function showMemory() {
+
+    const memory =
+        getMemory();
+
+    console.log(
+        "=============================="
+    );
+
+    console.log(
+        "SHRI AI MEMORY"
+    );
+
+    console.log(
+        memory
+    );
+
+    console.log(
+        "Memory Count:",
+        Object.keys(memory).length
+    );
+
+    console.log(
+        "Memory Version:",
+        MEMORY_VERSION
+    );
+
+    console.log(
+        "=============================="
+    );
+
+    return memory;
+}
+
+
+// ==========================================
+// CONTEXT MEMORY
+// ==========================================
 
 function saveContext(key, value) {
 
-    if (!key || value === null || value === undefined) {
+    if (
+        !key ||
+        value === null ||
+        value === undefined
+    ) {
         return false;
     }
 
@@ -109,9 +465,9 @@ function saveContext(key, value) {
 }
 
 
-// ------------------------------------------
+// ==========================================
 // GET CONTEXT
-// ------------------------------------------
+// ==========================================
 
 function getContext(key) {
 
@@ -125,228 +481,123 @@ function getContext(key) {
 }
 
 
-// ------------------------------------------
-// SAFE USER NAME
-// ------------------------------------------
+// ==========================================
+// DELETE CONTEXT
+// ==========================================
 
-function getSafeUserName() {
+function forgetContext(key) {
 
-    const name =
-        recall("username");
-
-    if (
-        !name ||
-        typeof name !== "string"
-    ) {
-        return null;
+    if (!key) {
+        return false;
     }
 
-    return name.trim() || null;
-}
-
-
-// ------------------------------------------
-// PERSONAL MEMORY
-// ------------------------------------------
-
-function handlePersonalMemory(message) {
-
-    if (!message) {
-        return null;
-    }
-
-    const text =
-        String(message).trim();
-
-// ======================================
-// WHAT IS MY NAME? — CHECK FIRST
-// ======================================
-
-if (
-    /^(what is my name|what's my name|mera naam kya hai|mera naam batao|mera name kya hai|mera name batao|do you know my name)$/i
-        .test(text)
-) {
-
-    const name =
-        getSafeUserName();
-
-    if (name) {
-        return `Your name is ${name}. 😊`;
-    }
-
-    return "I don't know your name yet. Tell me, and I'll remember it.";
-}
-// ======================================
-    // USER NAME
-    // ======================================
-
-const nameMatch =
-    text.match(
-        /^(?:my name is|mera naam|mera name|call me)\s+(?:is\s+)?([a-zA-Z][a-zA-Z\s]{1,30}?)(?:\s+hai)?$/i
+    return forgetMemory(
+        `context_${key}`
     );
-    if (nameMatch) {
-
-        let name =
-            nameMatch[1]
-                .trim()
-                .replace(/[.!?,]+$/, "");
+}
 
 
-        // Avoid accidentally saving long sentences
+// ==========================================
+// MEMORY EXPORT
+// ==========================================
+
+function exportMemory() {
+
+    try {
+
+        return JSON.stringify(
+            getMemory()
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Memory Export Error:",
+            error
+        );
+
+        return "{}";
+    }
+}
+
+
+// ==========================================
+// MEMORY IMPORT
+// ==========================================
+
+function importMemory(data) {
+
+    try {
+
+        let imported;
+
         if (
-            name &&
-            name.split(/\s+/).length <= 4
+            typeof data === "string"
         ) {
 
-            remember(
-                "username",
-                name
-            );
+            imported =
+                JSON.parse(data);
 
-            return `Okay! I'll remember that your name is ${name}. 😊`;
+        } else {
+
+            imported = data;
         }
+
+        if (
+            !imported ||
+            typeof imported !== "object" ||
+            Array.isArray(imported)
+        ) {
+            return false;
+        }
+
+        return saveMemory(
+            imported
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Memory Import Error:",
+            error
+        );
+
+        return false;
     }
-
-
-
-    return null;
 }
 
 
-// ------------------------------------------
-// DYNAMIC MEMORY
-// ------------------------------------------
+// ==========================================
+// MEMORY STATUS
+// ==========================================
 
-function handleDynamicMemory(message) {
+function getMemoryStatus() {
 
-    if (!message) {
-        return null;
-    }
+    const memory =
+        getMemory();
 
-    const text =
-        String(message).trim();
+    return {
 
+        version:
+            MEMORY_VERSION,
 
-    // ======================================
-    // FAVOURITE SUBJECT
-    // ======================================
+        key:
+            MEMORY_KEY,
 
-    const subjectMatch =
-        text.match(
-            /(?:my|mera|meri)\s+(?:favourite|favorite)\s+subject\s+(?:is|hai)\s+(.+)/i
-        );
+        count:
+            Object.keys(memory).length,
 
+        available:
+            true
 
-    if (subjectMatch) {
-
-        const subject =
-            subjectMatch[1]
-                .trim()
-                .replace(/[.!?,]+$/, "");
-
-
-        if (subject) {
-
-            remember(
-                "favoriteSubject",
-                subject
-            );
-
-            return `Got it! I'll remember that your favourite subject is ${subject}. 😊`;
-        }
-    }
-
-
-    // ======================================
-    // FAVOURITE LANGUAGE
-    // ======================================
-
-    const languageMatch =
-        text.match(
-            /(?:my|meri|mera)\s+(?:favourite|favorite)\s+language\s+(?:is|hai)\s+(.+)/i
-        );
-
-
-    if (languageMatch) {
-
-        const language =
-            languageMatch[1]
-                .trim()
-                .replace(/[.!?,]+$/, "");
-
-
-        if (language) {
-
-            remember(
-                "favoriteLanguage",
-                language
-            );
-
-            return `Got it! I'll remember that your favourite language is ${language}. 😊`;
-        }
-    }
-
-
-    // ======================================
-    // CLASS
-    // ======================================
-
-    const classMatch =
-        text.match(
-            /(?:i am|i'm|mai|main)\s+(?:in\s+)?class\s+([0-9]+[a-zA-Z]?)/i
-        );
-
-
-    if (classMatch) {
-
-        const className =
-            classMatch[1].trim();
-
-
-        remember(
-            "class",
-            className
-        );
-
-
-        return `Okay! I'll remember that you're in class ${className}. 😊`;
-    }
-
-
-    // ======================================
-    // FAVOURITE COLOUR
-    // ======================================
-
-    const colorMatch =
-        text.match(
-            /(?:my|mera|meri)\s+(?:favourite|favorite)\s+colou?r\s+(?:is|hai)\s+(.+)/i
-        );
-
-
-    if (colorMatch) {
-
-        const color =
-            colorMatch[1]
-                .trim()
-                .replace(/[.!?,]+$/, "");
-
-
-        if (color) {
-
-            remember(
-                "favoriteColor",
-                color
-            );
-
-            return `Got it! I'll remember that your favourite colour is ${color}. 😊`;
-        }
-    }
-
-
-    return null;
+    };
 }
 
+
+// ==========================================
+// LOAD
+// ==========================================
 
 console.log(
-    "Shri Memory Intelligence Layer loaded successfully."
+    "SHRI Memory.js V4.0 loaded successfully."
 );
