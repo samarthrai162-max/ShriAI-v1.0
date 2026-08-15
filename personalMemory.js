@@ -1,676 +1,539 @@
 // ==========================================
 // SHRI AI OS
 // PERSONAL MEMORY SYSTEM
-// FINAL - WELL MAINTAINED VERSION
+// V4.0 PROFESSIONAL
 // ==========================================
-
-
-// ==========================================
-// CLEAN MEMORY VALUE
-// ==========================================
-
-function cleanMemoryValue(value) {
-
-    if (!value) {
-        return "";
-    }
-
-    return String(value)
-        .replace(/\bhai\b/gi, "")
-        .replace(/\bh\b/gi, "")
-        .replace(/\s+/g, " ")
-        .trim();
-
-}
 
 
 // ==========================================
 // NORMALIZE TEXT
 // ==========================================
 
-function normalizeMemoryText(message) {
+function normalizePersonalText(message) {
+
+    if (!message) {
+        return "";
+    }
 
     return String(message)
         .toLowerCase()
-        .replace(/favourite/g, "favorite")
-        .replace(/colour/g, "color")
-        .replace(/[?.!,]/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
 
+        .replace(
+            /favourite/g,
+            "favorite"
+        )
+
+        .replace(
+            /colour/g,
+            "color"
+        )
+
+        .replace(
+            /\bkaa\b/g,
+            "ka"
+        )
+
+        .replace(
+            /\bkee\b/g,
+            "ki"
+        )
+
+        .replace(
+            /[?.!,]/g,
+            ""
+        )
+
+        .replace(
+            /\s+/g,
+            " "
+        )
+
+        .trim();
 }
 
 
 // ==========================================
-// QUESTION WORD HELPERS
-// ==========================================
-//
-// Supports BOTH:
-//
-// kaun sa
-// kaunsa
-//
-// kaun si
-// kaunsi
-//
-// kaun se
-// kaunse
-//
-// kon sa
-// konsa
-//
-// kon si
-// konsi
-//
-// kon se
-// konse
-//
+// CLEAN VALUE
 // ==========================================
 
-const MEMORY_QUESTION_WORDS =
-    "(?:kaun|kon)\\s*(?:sa|si|se)";
+function cleanPersonalValue(value) {
 
-const MEMORY_QUESTION_COMPACT =
-    "(?:kaunsa|kaunsi|kaunse|konsa|konsi|konse)";
-
-
-// ==========================================
-// CHECK MEMORY QUESTION
-// ==========================================
-
-function isMemoryQuestion(text) {
-
-    const t = normalizeMemoryText(text);
-
-
-    // English question words
-
-    if (
-        /\bwhat\b/.test(t) ||
-        /\bwho\b/.test(t)
-    ) {
-        return true;
+    if (!value) {
+        return "";
     }
 
+    return String(value)
+        .replace(
+            /\s+/g,
+            " "
+        )
+        .replace(
+            /[.!?,]+$/,
+            ""
+        )
+        .trim();
+}
 
-    // Hindi question words
 
-    if (
+// ==========================================
+// QUESTION WORD DETECTION
+// ==========================================
+
+function isPersonalQuestion(text) {
+
+    const t =
+        normalizePersonalText(text);
+
+    return (
+        /\bwhat\b/.test(t) ||
+        /\bwho\b/.test(t) ||
+        /\bwhose\b/.test(t) ||
+
         /\bkya\b/.test(t) ||
         /\bkyaa\b/.test(t) ||
+
         /\bkaun\b/.test(t) ||
-        /\bkon\b/.test(t)
-    ) {
-        return true;
-    }
+        /\bkon\b/.test(t) ||
 
+        /\bkaunsa\b/.test(t) ||
+        /\bkaunsi\b/.test(t) ||
+        /\bkaunse\b/.test(t) ||
 
-    // Spaced / unspaced forms
-
-    if (
-        new RegExp("\\b" + MEMORY_QUESTION_WORDS + "\\b", "i")
-            .test(t)
-    ) {
-        return true;
-    }
-
-    if (
-        new RegExp("\\b" + MEMORY_QUESTION_COMPACT + "\\b", "i")
-            .test(t)
-    ) {
-        return true;
-    }
-
-
-    return false;
-
+        /\bkonsa\b/.test(t) ||
+        /\bkonsi\b/.test(t) ||
+        /\bkonse\b/.test(t)
+    );
 }
 
 
 // ==========================================
-// RECALL HELPER
+// INVALID VALUE
 // ==========================================
 
-function recallMemory(key, label) {
+function isInvalidPersonalValue(value) {
 
-    const value = recallFact(key);
+    const t =
+        normalizePersonalText(value);
 
+    if (!t) {
+        return true;
+    }
+
+    return /^(kya|kyaa|kaun|kon|what|who|whose|kaunsa|kaunsi|kaunse|konsa|konsi|konse)$/i
+        .test(t);
+}
+
+
+// ==========================================
+// SAFE USER NAME
+// ==========================================
+
+function getSafeUserName() {
+
+    const name =
+        recall("username");
+
+    if (
+        !name ||
+        typeof name !== "string"
+    ) {
+        return null;
+    }
+
+    return name.trim() || null;
+}
+
+
+// ==========================================
+// NAME RECALL
+// ==========================================
+
+function handleNameRecall(text) {
+
+    const t =
+        normalizePersonalText(text);
+
+    const patterns = [
+
+        /^what is my name$/,
+
+        /^what's my name$/,
+
+        /^mera naam kya hai$/,
+
+        /^mera naam batao$/,
+
+        /^mera name kya hai$/,
+
+        /^mera name batao$/,
+
+        /^do you know my name$/,
+
+        /^who am i$/,
+
+        /^mujhe mere naam ke baare mein batao$/
+
+    ];
+
+
+    if (
+        patterns.some(
+            pattern =>
+                pattern.test(t)
+        )
+    ) {
+
+        const name =
+            getSafeUserName();
+
+        if (name) {
+
+            return (
+                `Your name is ${name}. 😊`
+            );
+        }
+
+        return (
+            "I don't know your name yet. " +
+            "Tell me, and I'll remember it."
+        );
+    }
+
+    return null;
+}
+
+
+// ==========================================
+// NAME SAVE
+// ==========================================
+
+function handleNameSave(original) {
+
+    let match;
+
+
+    // My name is Samarth
+    match =
+        original.match(
+            /^my\s+name\s+is\s+([a-zA-Z][a-zA-Z\s'-]{0,29})$/i
+        );
+
+
+    // Mera naam Samarth hai
+    if (!match) {
+
+        match =
+            original.match(
+                /^mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{0,29})\s+(?:hai|h)$/i
+            );
+    }
+
+
+    // Mera naam Samarth
+    if (!match) {
+
+        match =
+            original.match(
+                /^mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{0,29})$/i
+            );
+    }
+
+
+    // Mera name Samarth hai
+    if (!match) {
+
+        match =
+            original.match(
+                /^mera\s+name\s+([a-zA-Z][a-zA-Z\s'-]{0,29})\s+(?:hai|h)$/i
+            );
+    }
+
+
+    // Call me Samarth
+    if (!match) {
+
+        match =
+            original.match(
+                /^call\s+me\s+([a-zA-Z][a-zA-Z\s'-]{0,29})$/i
+            );
+    }
+
+
+    if (!match) {
+        return null;
+    }
+
+
+    const name =
+        cleanPersonalValue(
+            match[1]
+        );
+
+
+    if (
+        !name ||
+        isInvalidPersonalValue(name) ||
+        name.split(/\s+/).length > 4
+    ) {
+        return null;
+    }
+
+
+    if (
+        remember(
+            "username",
+            name
+        )
+    ) {
+
+        return (
+            `Nice to meet you, ${name}! 😊 ` +
+            `I'll remember your name.`
+        );
+    }
+
+
+    return null;
+}
+
+
+// ==========================================
+// PERSONAL FACT DEFINITIONS
+// ==========================================
+
+const PERSONAL_FACTS = {
+
+    favoriteColor: {
+        label: "favorite color",
+        hindi: "favorite color"
+    },
+
+    favoriteGame: {
+        label: "favorite game",
+        hindi: "favorite game"
+    },
+
+    favoriteLanguage: {
+        label: "favorite language",
+        hindi: "favorite language"
+    },
+
+    favoriteSinger: {
+        label: "favorite singer",
+        hindi: "favorite singer"
+    },
+
+    favoriteFood: {
+        label: "favorite food",
+        hindi: "favorite food"
+    },
+
+    favoriteBook: {
+        label: "favorite book",
+        hindi: "favorite book"
+    },
+
+    favoriteSubject: {
+        label: "favorite subject",
+        hindi: "favorite subject"
+    },
+
+    school: {
+        label: "school",
+        hindi: "school"
+    },
+
+    class: {
+        label: "class",
+        hindi: "class"
+    },
+
+    hobby: {
+        label: "hobby",
+        hindi: "hobby"
+    },
+
+    city: {
+        label: "city",
+        hindi: "city"
+    },
+
+    age: {
+        label: "age",
+        hindi: "age"
+    }
+};
+
+
+// ==========================================
+// PERSONAL RECALL HELPER
+// ==========================================
+
+function recallPersonalFact(
+    key,
+    label
+) {
+
+    const value =
+        recallFact(key);
 
     if (value) {
 
-        return `Your ${label} is ${value}.`;
-
+        return (
+            `Your ${label} is ${value}.`
+        );
     }
 
-
-    return `I don't know your ${label} yet.`;
-
+    return (
+        `I don't know your ${label} yet.`
+    );
 }
 
 
 // ==========================================
-// MAIN PERSONAL MEMORY
+// PERSONAL RECALL
 // ==========================================
 
-function handlePersonalMemory(message) {
+function handlePersonalRecall(text) {
 
-    if (!message) {
-        return null;
-    }
+    const t =
+        normalizePersonalText(text);
 
 
-    const original =
-        String(message).trim();
-
-
-    const text =
-        normalizeMemoryText(original);
-
-
-    // ======================================
-    // NAME
-    // ======================================
-
-    if (
-        /^(what is|what's) my name$/.test(text) ||
-        /^mera naam (kya|kyaa) hai$/.test(text) ||
-        /^mera naam (kaun|kon)\s*(sa|si)$/.test(text) ||
-        /^mera naam (kaunsa|kaunsi|konsa|konsi)$/.test(text) ||
-        text === "who am i"
-    ) {
-
-        const value =
-            recallFact("name");
-
-
-        if (value) {
-            return `Your name is ${value}.`;
-        }
-
-
-        return "I don't know your name yet.";
-
-    }
-
-
-    // ======================================
-    // FAVORITE COLOR
-    // ======================================
-
-    if (
-        /^what is my favorite color$/.test(text) ||
-        /^mera favorite color (kya|kyaa) hai$/.test(text) ||
-        /^mera favorite color (kaun|kon)\s*(sa|si) hai$/.test(text) ||
-        /^mera favorite color (kaunsa|kaunsi|konsa|konsi) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "favoriteColor",
-            "favorite color"
-        );
-
-    }
-
-
-    // ======================================
-    // FAVORITE GAME
-    // ======================================
-
-    if (
-        /^what is my favorite game$/.test(text) ||
-        /^mera favorite game (kya|kyaa) hai$/.test(text) ||
-        /^mera favorite game (kaun|kon)\s*sa hai$/.test(text) ||
-        /^mera favorite game (kaunsa|konsa) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "favoriteGame",
-            "favorite game"
-        );
-
-    }
-
-
-    // ======================================
-    // FAVORITE LANGUAGE
-    // ======================================
-
-    if (
-        /^what is my favorite language$/.test(text) ||
-        /^meri favorite language (kya|kyaa) hai$/.test(text) ||
-        /^meri favorite language (kaun|kon)\s*si hai$/.test(text) ||
-        /^meri favorite language (kaunsi|konsi) hai$/.test(text) ||
-        /^mera favorite language (kya|kyaa) hai$/.test(text) ||
-        /^mera favorite language (kaun|kon)\s*si hai$/.test(text) ||
-        /^mera favorite language (kaunsi|konsi) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "favoriteLanguage",
-            "favorite language"
-        );
-
-    }
-
-
-    // ======================================
-    // FAVORITE SINGER
-    // ======================================
-
-    if (
-        /^what is my favorite singer$/.test(text) ||
-        /^mera favorite singer (kya|kyaa) hai$/.test(text) ||
-        /^mera favorite singer (kaun|kon)\s*(sa|si) hai$/.test(text) ||
-        /^mera favorite singer (kaunsa|kaunsi|konsa|konsi) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "favoriteSinger",
-            "favorite singer"
-        );
-
-    }
-
-
-    // ======================================
-    // FAVORITE FOOD
-    // ======================================
-
-    if (
-        /^what is my favorite food$/.test(text) ||
-        /^mera favorite food (kya|kyaa) hai$/.test(text) ||
-        /^mera favorite food (kaun|kon)\s*sa hai$/.test(text) ||
-        /^mera favorite food (kaunsa|konsa) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "favoriteFood",
-            "favorite food"
-        );
-
-    }
-
-
-    // ======================================
-    // FAVORITE BOOK
-    // ======================================
-
-    if (
-        /^what is my favorite book$/.test(text) ||
-        /^meri favorite book (kya|kyaa) hai$/.test(text) ||
-        /^meri favorite book (kaun|kon)\s*si hai$/.test(text) ||
-        /^meri favorite book (kaunsi|konsi) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "favoriteBook",
-            "favorite book"
-        );
-
-    }
-
-
-    // ======================================
-    // FAVORITE SUBJECT
-    // ======================================
-
-    if (
-        /^what is my favorite subject$/.test(text) ||
-        /^mera favorite subject (kya|kyaa) hai$/.test(text) ||
-        /^mera favorite subject (kaun|kon)\s*sa hai$/.test(text) ||
-        /^mera favorite subject (kaunsa|konsa) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "favoriteSubject",
-            "favorite subject"
-        );
-
-    }
-
-
-    // ======================================
-    // SCHOOL
-    // ======================================
-
-    if (
-        /^what is my school$/.test(text) ||
-        /^mera school (kya|kyaa) hai$/.test(text) ||
-        /^mera school (kaun|kon)\s*sa hai$/.test(text) ||
-        /^mera school (kaunsa|konsa) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "school",
-            "school"
-        );
-
-    }
-
-
-    // ======================================
-    // CLASS
-    // ======================================
-
-    if (
-        /^what class am i in$/.test(text) ||
-        /^meri class (kya|kyaa) hai$/.test(text) ||
-        /^meri class (kaun|kon)\s*si hai$/.test(text) ||
-        /^meri class (kaunsi|konsi) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "class",
-            "class"
-        );
-
-    }
-
-
-    // ======================================
-    // HOBBY
-    // ======================================
-
-    if (
-        /^what is my hobby$/.test(text) ||
-        /^meri hobby (kya|kyaa) hai$/.test(text) ||
-        /^meri hobby (kaun|kon)\s*si hai$/.test(text) ||
-        /^meri hobby (kaunsi|konsi) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "hobby",
-            "hobby"
-        );
-
-    }
-
-
-    // ======================================
-    // CITY
-    // ======================================
-
-    if (
-        /^what is my city$/.test(text) ||
-        /^meri city (kya|kyaa) hai$/.test(text) ||
-        /^mera city (kya|kyaa) hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "city",
-            "city"
-        );
-
-    }
-
-
-    // ======================================
-    // AGE
-    // ======================================
-
-    if (
-        /^what is my age$/.test(text) ||
-        /^meri age (kya|kyaa) hai$/.test(text) ||
-        /^meri age kitni hai$/.test(text) ||
-        /^meri umar (kya|kyaa) hai$/.test(text) ||
-        /^meri umar kitni hai$/.test(text)
-    ) {
-
-        return recallMemory(
-            "age",
-            "age"
-        );
-
-    }
-
-
-    // ======================================
-    // IMPORTANT
-    // QUESTIONS MUST NEVER BE SAVED
-    // ======================================
-
-    if (isMemoryQuestion(text)) {
-        return null;
-    }
-
-
-    // ======================================
-    // SAVE PATTERNS
-    // ======================================
-
-    const savePatterns = [
-
-
-        // ==================================
-        // NAME
-        // ==================================
+    const recallMap = [
 
         {
             patterns: [
-                /^my name is (.+)$/i,
-                /^mera naam (.+) hai$/i,
-                /^mera naam (.+) h$/i,
-                /^call me (.+)$/i
+                /^what is my favorite color$/,
+                /^mera favorite color kya hai$/,
+                /^mera favorite color kaun sa hai$/,
+                /^mera favorite color kaunsa hai$/
             ],
-
-            key: "name",
-            label: "name"
-        },
-
-
-        // ==================================
-        // FAVORITE COLOR
-        // ==================================
-
-        {
-            patterns: [
-                /^my favorite color is (.+)$/i,
-                /^my favourite color is (.+)$/i,
-
-                /^my favorite colour is (.+)$/i,
-                /^my favourite colour is (.+)$/i,
-
-                /^mera favorite color (.+) hai$/i,
-                /^meri favorite color (.+) hai$/i,
-
-                /^mera favourite color (.+) hai$/i,
-                /^meri favourite color (.+) hai$/i,
-
-                /^mera favorite colour (.+) hai$/i,
-                /^meri favorite colour (.+) hai$/i,
-
-                /^mera favourite colour (.+) hai$/i,
-                /^meri favourite colour (.+) hai$/i
-            ],
-
             key: "favoriteColor",
             label: "favorite color"
         },
 
-
-        // ==================================
-        // FAVORITE GAME
-        // ==================================
-
         {
             patterns: [
-                /^my favorite game is (.+)$/i,
-                /^my favourite game is (.+)$/i,
-
-                /^mera favorite game (.+) hai$/i,
-                /^mera favourite game (.+) hai$/i
+                /^what is my favorite game$/,
+                /^mera favorite game kya hai$/,
+                /^mera favorite game kaun sa hai$/,
+                /^mera favorite game kaunsa hai$/
             ],
-
             key: "favoriteGame",
             label: "favorite game"
         },
 
-
-        // ==================================
-        // FAVORITE LANGUAGE
-        // ==================================
-
         {
             patterns: [
-                /^my favorite language is (.+)$/i,
-                /^my favourite language is (.+)$/i,
-
-                /^meri favorite language (.+) hai$/i,
-                /^meri favourite language (.+) hai$/i,
-
-                /^mera favorite language (.+) hai$/i,
-                /^mera favourite language (.+) hai$/i
+                /^what is my favorite language$/,
+                /^meri favorite language kya hai$/,
+                /^mera favorite language kya hai$/,
+                /^meri favorite language kaunsi hai$/,
+                /^mera favorite language kaunsi hai$/
             ],
-
             key: "favoriteLanguage",
             label: "favorite language"
         },
 
-
-        // ==================================
-        // FAVORITE SINGER
-        // ==================================
-
         {
             patterns: [
-                /^my favorite singer is (.+)$/i,
-                /^my favourite singer is (.+)$/i,
-
-                /^mera favorite singer (.+) hai$/i,
-                /^mera favourite singer (.+) hai$/i
+                /^what is my favorite singer$/,
+                /^mera favorite singer kya hai$/,
+                /^mera favorite singer kaun hai$/,
+                /^mera favorite singer kaun sa hai$/,
+                /^mera favorite singer kaunsa hai$/
             ],
-
             key: "favoriteSinger",
             label: "favorite singer"
         },
 
-
-        // ==================================
-        // FAVORITE FOOD
-        // ==================================
-
         {
             patterns: [
-                /^my favorite food is (.+)$/i,
-                /^my favourite food is (.+)$/i,
-
-                /^mera favorite food (.+) hai$/i,
-                /^mera favourite food (.+) hai$/i
+                /^what is my favorite food$/,
+                /^mera favorite food kya hai$/,
+                /^mera favorite food kaun sa hai$/,
+                /^mera favorite food kaunsa hai$/
             ],
-
             key: "favoriteFood",
             label: "favorite food"
         },
 
-
-        // ==================================
-        // FAVORITE BOOK
-        // ==================================
-
         {
             patterns: [
-                /^my favorite book is (.+)$/i,
-                /^my favourite book is (.+)$/i,
-
-                /^meri favorite book (.+) hai$/i,
-                /^meri favourite book (.+) hai$/i
+                /^what is my favorite book$/,
+                /^meri favorite book kya hai$/,
+                /^meri favorite book kaunsi hai$/,
+                /^mera favorite book kya hai$/,
+                /^mera favorite book kaunsa hai$/
             ],
-
             key: "favoriteBook",
             label: "favorite book"
         },
 
-
-        // ==================================
-        // FAVORITE SUBJECT
-        // ==================================
-
         {
             patterns: [
-                /^my favorite subject is (.+)$/i,
-                /^my favourite subject is (.+)$/i,
-
-                /^mera favorite subject (.+) hai$/i,
-                /^mera favourite subject (.+) hai$/i
+                /^what is my favorite subject$/,
+                /^mera favorite subject kya hai$/,
+                /^mera favorite subject kaun sa hai$/,
+                /^mera favorite subject kaunsa hai$/
             ],
-
             key: "favoriteSubject",
             label: "favorite subject"
         },
 
-
-        // ==================================
-        // SCHOOL
-        // ==================================
-
         {
             patterns: [
-                /^my school is (.+)$/i,
-                /^mera school (.+) hai$/i
+                /^what is my school$/,
+                /^mera school kya hai$/,
+                /^mera school kaun sa hai$/,
+                /^mera school kaunsa hai$/
             ],
-
             key: "school",
             label: "school"
         },
 
-
-        // ==================================
-        // CLASS
-        // ==================================
-
         {
             patterns: [
-                /^my class is (.+)$/i,
-                /^meri class (.+) hai$/i
+                /^what class am i in$/,
+                /^which class am i in$/,
+                /^meri class kya hai$/,
+                /^meri class kaunsi hai$/
             ],
-
             key: "class",
             label: "class"
         },
 
-
-        // ==================================
-        // HOBBY
-        // ==================================
-
         {
             patterns: [
-                /^my hobby is (.+)$/i,
-                /^meri hobby (.+) hai$/i
+                /^what is my hobby$/,
+                /^meri hobby kya hai$/,
+                /^meri hobby kaun si hai$/,
+                /^meri hobby kaunsi hai$/
             ],
-
             key: "hobby",
             label: "hobby"
         },
 
-
-        // ==================================
-        // CITY
-        // ==================================
-
         {
             patterns: [
-                /^my city is (.+)$/i,
-                /^meri city (.+) hai$/i,
-                /^mera city (.+) hai$/i
+                /^what is my city$/,
+                /^mera city kya hai$/,
+                /^meri city kya hai$/,
+                /^mera shehar kya hai$/
             ],
-
             key: "city",
             label: "city"
         },
 
-
-        // ==================================
-        // AGE
-        // ==================================
-
         {
             patterns: [
-                /^my age is (.+)$/i,
-                /^meri age (.+) hai$/i,
-                /^meri umar (.+) hai$/i
+                /^what is my age$/,
+                /^meri age kya hai$/,
+                /^meri age kitni hai$/,
+                /^meri umar kya hai$/,
+                /^meri umar kitni hai$/
             ],
-
             key: "age",
             label: "age"
         }
@@ -678,82 +541,542 @@ function handlePersonalMemory(message) {
     ];
 
 
-    // ======================================
-    // PROCESS SAVE PATTERNS
-    // ======================================
+    for (
+        const item of recallMap
+    ) {
 
-    for (const item of savePatterns) {
+        if (
+            item.patterns.some(
+                pattern =>
+                    pattern.test(t)
+            )
+        ) {
 
-        for (const pattern of item.patterns) {
-
-            const match =
-                original.match(pattern);
-
-
-            if (!match) {
-                continue;
-            }
-
-
-            let value =
-                cleanMemoryValue(match[1]);
-
-
-            if (!value) {
-                return null;
-            }
-
-
-            // ==================================
-            // SAFETY CHECK
-            // ==================================
-            // Never save question words
-            // as actual memory values.
-            // ==================================
-
-            const invalidValuePattern =
-                /^(?:kya|kyaa|kaun|kon|kaun\s+sa|kaun\s+si|kaun\s+se|kon\s+sa|kon\s+si|kon\s+se|kaunsa|kaunsi|kaunse|konsa|konsi|konse)$/i;
-
-
-            if (
-                invalidValuePattern.test(value)
-            ) {
-
-                return null;
-
-            }
-
-
-            // ==================================
-            // SAVE
-            // ==================================
-
-            rememberFact(
+            return recallPersonalFact(
                 item.key,
-                value
+                item.label
             );
-
-
-            return `Done! I'll remember your ${item.label} is ${value}.`;
-
         }
-
     }
 
 
-    // ======================================
-    // NOTHING MATCHED
-    // ======================================
-
     return null;
-
 }
 
 
 // ==========================================
-// LOAD MESSAGE
+// FORGET PERSONAL MEMORY
+// ==========================================
+
+function handlePersonalForget(text) {
+
+    const t =
+        normalizePersonalText(text);
+
+
+    const forgetMap = [
+
+        {
+            patterns: [
+                /^forget my name$/,
+                /^mera naam bhool jao$/,
+                /^mera naam bhul jao$/
+            ],
+            key: "username",
+            label: "name"
+        },
+
+        {
+            patterns: [
+                /^forget my favorite color$/,
+                /^mera favorite color bhool jao$/,
+                /^mera favorite color bhul jao$/
+            ],
+            key: "favoriteColor",
+            label: "favorite color"
+        },
+
+        {
+            patterns: [
+                /^forget my favorite game$/,
+                /^mera favorite game bhool jao$/,
+                /^mera favorite game bhul jao$/
+            ],
+            key: "favoriteGame",
+            label: "favorite game"
+        },
+
+        {
+            patterns: [
+                /^forget my favorite language$/,
+                /^meri favorite language bhool jao$/,
+                /^meri favorite language bhul jao$/
+            ],
+            key: "favoriteLanguage",
+            label: "favorite language"
+        },
+
+        {
+            patterns: [
+                /^forget my favorite singer$/,
+                /^mera favorite singer bhool jao$/,
+                /^mera favorite singer bhul jao$/
+            ],
+            key: "favoriteSinger",
+            label: "favorite singer"
+        },
+
+        {
+            patterns: [
+                /^forget my favorite food$/,
+                /^mera favorite food bhool jao$/,
+                /^mera favorite food bhul jao$/
+            ],
+            key: "favoriteFood",
+            label: "favorite food"
+        },
+
+        {
+            patterns: [
+                /^forget my favorite book$/,
+                /^meri favorite book bhool jao$/,
+                /^meri favorite book bhul jao$/
+            ],
+            key: "favoriteBook",
+            label: "favorite book"
+        },
+
+        {
+            patterns: [
+                /^forget my favorite subject$/,
+                /^mera favorite subject bhool jao$/,
+                /^mera favorite subject bhul jao$/
+            ],
+            key: "favoriteSubject",
+            label: "favorite subject"
+        },
+
+        {
+            patterns: [
+                /^forget my school$/,
+                /^mera school bhool jao$/,
+                /^mera school bhul jao$/
+            ],
+            key: "school",
+            label: "school"
+        },
+
+        {
+            patterns: [
+                /^forget my class$/,
+                /^meri class bhool jao$/,
+                /^meri class bhul jao$/
+            ],
+            key: "class",
+            label: "class"
+        },
+
+        {
+            patterns: [
+                /^forget my hobby$/,
+                /^meri hobby bhool jao$/,
+                /^meri hobby bhul jao$/
+            ],
+            key: "hobby",
+            label: "hobby"
+        },
+
+        {
+            patterns: [
+                /^forget my city$/,
+                /^meri city bhool jao$/,
+                /^meri city bhul jao$/
+            ],
+            key: "city",
+            label: "city"
+        },
+
+        {
+            patterns: [
+                /^forget my age$/,
+                /^meri age bhool jao$/,
+                /^meri age bhul jao$/
+            ],
+            key: "age",
+            label: "age"
+        }
+
+    ];
+
+
+    for (
+        const item of forgetMap
+    ) {
+
+        if (
+            item.patterns.some(
+                pattern =>
+                    pattern.test(t)
+            )
+        ) {
+
+            if (
+                !hasMemory(item.key)
+            ) {
+
+                return (
+                    `I don't have your ${item.label} saved.`
+                );
+            }
+
+            if (
+                forgetMemory(item.key)
+            ) {
+
+                return (
+                    `Okay, I've forgotten your ${item.label}.`
+                );
+            }
+
+            return (
+                `I couldn't forget your ${item.label}.`
+            );
+        }
+    }
+
+
+    return null;
+}
+
+
+// ==========================================
+// PERSONAL FACT SAVE
+// ==========================================
+
+function handlePersonalFactSave(
+    original
+) {
+
+    let match;
+
+
+    // ======================================
+    // FAVORITE FACTS - ENGLISH
+    // ======================================
+
+    match =
+        original.match(
+            /^my\s+(favorite|favourite)\s+(color|game|language|singer|food|book|subject)\s+is\s+(.+)$/i
+        );
+
+    if (match) {
+
+        const type =
+            match[2]
+                .toLowerCase();
+
+        const key =
+            `favorite${type
+                .charAt(0)
+                .toUpperCase() +
+                type.slice(1)
+            }`;
+
+        return savePersonalFact(
+            key,
+            match[3]
+        );
+    }
+
+
+    // ======================================
+    // FAVORITE FACTS - HINDI
+    // ======================================
+
+    match =
+        original.match(
+            /^(mera|meri)\s+(favorite|favourite)\s+(color|game|language|singer|food|book|subject)\s+(.+)\s+(hai|h)$/i
+        );
+
+    if (match) {
+
+        const type =
+            match[3]
+                .toLowerCase();
+
+        const key =
+            `favorite${type
+                .charAt(0)
+                .toUpperCase() +
+                type.slice(1)
+            }`;
+
+        return savePersonalFact(
+            key,
+            match[4]
+        );
+    }
+
+
+    // ======================================
+    // SCHOOL
+    // ======================================
+
+    match =
+        original.match(
+            /^my\s+school\s+is\s+(.+)$/i
+        );
+
+    if (!match) {
+
+        match =
+            original.match(
+                /^mera\s+school\s+(.+)\s+(hai|h)$/i
+            );
+    }
+
+    if (match) {
+
+        return savePersonalFact(
+            "school",
+            match[match.length - 1]
+        );
+    }
+
+
+    // ======================================
+    // CLASS
+    // ======================================
+
+    match =
+        original.match(
+            /^my\s+class\s+is\s+([0-9]+[a-zA-Z]?)$/i
+        );
+
+    if (!match) {
+
+        match =
+            original.match(
+                /^meri\s+class\s+([0-9]+[a-zA-Z]?)\s+(hai|h)$/i
+            );
+    }
+
+    if (match) {
+
+        return savePersonalFact(
+            "class",
+            match[1]
+        );
+    }
+
+
+    // ======================================
+    // HOBBY
+    // ======================================
+
+    match =
+        original.match(
+            /^my\s+hobby\s+is\s+(.+)$/i
+        );
+
+    if (!match) {
+
+        match =
+            original.match(
+                /^meri\s+hobby\s+(.+)\s+(hai|h)$/i
+            );
+    }
+
+    if (match) {
+
+        return savePersonalFact(
+            "hobby",
+            match[match.length - 1]
+        );
+    }
+
+
+    // ======================================
+    // CITY
+    // ======================================
+
+    match =
+        original.match(
+            /^my\s+city\s+is\s+(.+)$/i
+        );
+
+    if (!match) {
+
+        match =
+            original.match(
+                /^meri\s+city\s+(.+)\s+(hai|h)$/i
+            );
+    }
+
+    if (match) {
+
+        return savePersonalFact(
+            "city",
+            match[match.length - 1]
+        );
+    }
+
+
+    // ======================================
+    // AGE
+    // ======================================
+
+    match =
+        original.match(
+            /^my\s+age\s+is\s+([0-9]+)$/i
+        );
+
+    if (!match) {
+
+        match =
+            original.match(
+                /^meri\s+age\s+([0-9]+)\s+(hai|h)$/i
+            );
+    }
+
+    if (!match) {
+
+        match =
+            original.match(
+                /^meri\s+umar\s+([0-9]+)\s+(hai|h)$/i
+            );
+    }
+
+    if (match) {
+
+        return savePersonalFact(
+            "age",
+            match[1]
+        );
+    }
+
+
+    return null;
+}
+
+
+// ==========================================
+// SAVE PERSONAL FACT HELPER
+// ==========================================
+
+function savePersonalFact(
+    key,
+    value
+) {
+
+    const cleanValue =
+        cleanPersonalValue(value);
+
+    if (
+        !cleanValue ||
+        isInvalidPersonalValue(
+            cleanValue
+        )
+    ) {
+        return null;
+    }
+
+
+    if (
+        rememberFact(
+            key,
+            cleanValue
+        )
+    ) {
+
+        const label =
+            key
+                .replace(
+                    /([A-Z])/g,
+                    " $1"
+                )
+                .toLowerCase();
+
+
+        return (
+            `Done! I'll remember your ${label} is ${cleanValue}.`
+        );
+    }
+
+
+    return null;
+}
+
+
+// ==========================================
+// MAIN PERSONAL MEMORY
+// ==========================================
+
+function handlePersonalMemory(
+    message
+) {
+
+    if (!message) {
+        return null;
+    }
+
+    const original =
+        String(message).trim();
+
+    if (!original) {
+        return null;
+    }
+
+
+    // QUESTIONS FIRST
+    const recall =
+        handleNameRecall(original) ||
+        handlePersonalRecall(original);
+
+    if (recall) {
+        return recall;
+    }
+
+
+    // FORGET
+    const forgotten =
+        handlePersonalForget(original);
+
+    if (forgotten) {
+        return forgotten;
+    }
+
+
+    // NEVER SAVE QUESTIONS
+    if (
+        isPersonalQuestion(
+            original
+        )
+    ) {
+        return null;
+    }
+
+
+    // NAME
+    const nameSaved =
+        handleNameSave(original);
+
+    if (nameSaved) {
+        return nameSaved;
+    }
+
+
+    // PERSONAL FACTS
+    return handlePersonalFactSave(
+        original
+    );
+}
+
+
+// ==========================================
+// LOAD
 // ==========================================
 
 console.log(
-    "PersonalMemory.js FINAL loaded successfully."
+    "SHRI PersonalMemory.js V4.0 loaded successfully."
 );
