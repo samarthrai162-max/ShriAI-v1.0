@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -10,64 +9,536 @@
         content="width=device-width, initial-scale=1.0"
     >
 
+    <meta
+        name="theme-color"
+        content="#080d19"
+    >
+
     <title>Shri AI OS</title>
 
     <link rel="stylesheet" href="style.css">
-
 </head>
 
 <body>
 
-<div class="container">
+<div class="app-shell">
 
-    <div class="logo-circle">
-        S
-    </div>
+    <!-- LEFT SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
 
-    <h1>Shri AI OS</h1>
+        <div class="brand">
+            <div class="brand-logo">S</div>
 
-    <p class="tagline">
-        Your Personal AI Assistant
-    </p>
+            <div class="brand-text">
+                <h2>SHRI<span> AI</span></h2>
+                <p>PERSONAL INTELLIGENCE</p>
+            </div>
 
-    <p id="status" class="status">
-        Ready to Listen...
-    </p>
+            <button
+                id="closeSidebar"
+                class="icon-button mobile-only"
+                type="button"
+                aria-label="Close menu"
+            >✕</button>
+        </div>
 
-    <button id="mic" type="button">
-        🎤
-    </button>
+        <button
+            id="newChat"
+            class="new-chat-button"
+            type="button"
+        >
+            <span>＋</span>
+            <span>New Conversation</span>
+        </button>
 
-    <div id="response"></div>
+        <p class="section-label">WORKSPACE</p>
+
+        <nav class="navigation">
+
+            <button
+                class="nav-item active"
+                type="button"
+                data-panel="chat"
+            >
+                <span class="nav-icon">◈</span>
+                <span>Conversation</span>
+            </button>
+
+            <button
+                class="nav-item"
+                type="button"
+                data-panel="history"
+            >
+                <span class="nav-icon">▤</span>
+                <span>Chat History</span>
+            </button>
+
+            <button
+                class="nav-item"
+                type="button"
+                data-panel="memory"
+            >
+                <span class="nav-icon">⬡</span>
+                <span>My Memory</span>
+            </button>
+
+            <button
+                class="nav-item"
+                type="button"
+                data-panel="study"
+            >
+                <span class="nav-icon">▧</span>
+                <span>Study Mode</span>
+            </button>
+
+            <button
+                class="nav-item"
+                type="button"
+                data-panel="coding"
+            >
+                <span class="nav-icon">&lt;/&gt;</span>
+                <span>Coding Mode</span>
+            </button>
+
+            <button
+                class="nav-item"
+                type="button"
+                data-panel="calculator"
+            >
+                <span class="nav-icon">⌗</span>
+                <span>Calculator</span>
+            </button>
+
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-system-card">
+            <div class="system-card-heading">
+                <span class="status-dot"></span>
+                SHRI CORE
+            </div>
+
+            <p>Personal assistant system</p>
+
+            <div class="system-card-footer">
+                <span>VERSION</span>
+                <span>V1.0</span>
+            </div>
+        </div>
+
+        <button
+            class="nav-item settings-button"
+            type="button"
+            data-panel="settings"
+        >
+            <span class="nav-icon">⚙</span>
+            <span>Settings</span>
+        </button>
+
+        <div class="sidebar-footer">
+            BUILT WITH ♥ BY SAMARTH
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN WORKSPACE -->
+    <main class="main-workspace">
+
+        <!-- TOP HEADER -->
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <button
+                    id="openSidebar"
+                    class="icon-button mobile-only"
+                    type="button"
+                    aria-label="Open menu"
+                >☰</button>
+
+                <div class="page-heading">
+                    <p class="eyebrow">PERSONAL AI WORKSPACE</p>
+                    <h1>Shri AI <span>OS</span></h1>
+                </div>
+
+            </div>
+
+            <div class="topbar-right">
+
+                <div class="connection-status">
+                    <span class="status-dot"></span>
+                    <span id="status">Ready to Listen...</span>
+                </div>
+
+                <button
+                    id="toggleInfo"
+                    class="icon-button info-toggle"
+                    type="button"
+                    aria-label="Toggle intelligence panel"
+                    title="Toggle intelligence panel"
+                >◫</button>
+
+            </div>
+
+        </header>
+
+
+        <!-- CONVERSATION -->
+        <section id="chatWorkspace" class="chat-workspace">
+
+            <div class="chat-heading">
+
+                <div>
+                    <p class="eyebrow">YOUR AI COMPANION</p>
+                    <h2>Let's build something great.</h2>
+                    <p class="chat-subtitle">
+                        Ask Shri anything. Let's figure it out together.
+                    </p>
+                </div>
+
+                <div class="assistant-avatar">
+                    <span>S</span>
+                    <i></i>
+                </div>
+
+            </div>
+
+
+            <!-- Existing response ID preserved -->
+            <div
+                id="response"
+                class="conversation-area"
+                aria-live="polite"
+                aria-label="Conversation messages"
+            >
+
+                <div class="welcome-card">
+
+                    <div class="welcome-icon">✳</div>
+
+                    <p class="eyebrow">SHRI INTELLIGENCE</p>
+
+                    <h2>How can I help you today?</h2>
+
+                    <p>
+                        I'm here to help you learn, create, code
+                        and explore new ideas.
+                    </p>
+
+                    <div class="suggestion-grid">
+
+                        <button
+                            class="suggestion-card"
+                            type="button"
+                            data-prompt="Explain a difficult topic in simple Hinglish."
+                        >
+                            <span>✧</span>
+                            <strong>Explain something</strong>
+                            <small>Make difficult topics simple</small>
+                        </button>
+
+                        <button
+                            class="suggestion-card"
+                            type="button"
+                            data-prompt="Help me write and debug some code."
+                        >
+                            <span>&lt;/&gt;</span>
+                            <strong>Write some code</strong>
+                            <small>Build and debug projects</small>
+                        </button>
+
+                        <button
+                            class="suggestion-card"
+                            type="button"
+                            data-prompt="Help me make a study plan."
+                        >
+                            <span>▧</span>
+                            <strong>Plan my studies</strong>
+                            <small>Learn one step at a time</small>
+                        </button>
+
+                        <button
+                            class="suggestion-card"
+                            type="button"
+                            data-prompt="Give me an interesting technology fact and explain it."
+                        >
+                            <span>◈</span>
+                            <strong>Explore an idea</strong>
+                            <small>Discover something new</small>
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- INPUT AREA -->
+            <div class="composer-wrapper">
+
+                <form id="chatForm" class="composer">
+
+                    <textarea
+                        id="messageInput"
+                        rows="1"
+                        maxlength="12000"
+                        placeholder="Message Shri AI..."
+                        aria-label="Type your message"
+                    ></textarea>
+
+                    <div class="composer-toolbar">
+
+                        <div class="composer-tools">
+
+                            <span class="input-hint">
+                                <span>↵</span>
+                                Enter to send
+                            </span>
+
+                        </div>
+
+                        <div class="composer-actions">
+
+                            <button
+                                id="mic"
+                                class="mic-button"
+                                type="button"
+                                aria-label="Start voice input"
+                                title="Talk to Shri"
+                            >🎤</button>
+
+                            <button
+                                id="sendMessage"
+                                class="send-button"
+                                type="submit"
+                                aria-label="Send message"
+                            >➤</button>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+                <p class="composer-disclaimer">
+                    Shri AI can make mistakes. Verify important information.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- SIMPLE PLACEHOLDER PANELS -->
+        <section
+            id="utilityWorkspace"
+            class="utility-workspace"
+            hidden
+        >
+
+            <div class="utility-card">
+
+                <div class="welcome-icon">◈</div>
+
+                <p class="eyebrow">SHRI WORKSPACE</p>
+
+                <h2 id="utilityTitle">Workspace</h2>
+
+                <p id="utilityDescription">
+                    This section will be connected to its feature later.
+                </p>
+
+                <button
+                    id="returnToChat"
+                    class="new-chat-button"
+                    type="button"
+                >
+                    ← Return to Conversation
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- RIGHT INTELLIGENCE PANEL -->
+    <aside id="infoPanel" class="info-panel">
+
+        <div class="info-panel-heading">
+
+            <div>
+                <p class="eyebrow">LIVE OVERVIEW</p>
+                <h2>Intelligence</h2>
+            </div>
+
+            <button
+                id="closeInfo"
+                class="icon-button mobile-only"
+                type="button"
+                aria-label="Close intelligence panel"
+            >✕</button>
+
+        </div>
+
+
+        <div class="intelligence-card">
+
+            <div class="intelligence-title">
+                <span class="mini-icon">✳</span>
+                <span>SHRI CORE</span>
+                <span class="status-dot"></span>
+            </div>
+
+            <div class="core-visual">
+                <div class="core-ring ring-one"></div>
+                <div class="core-ring ring-two"></div>
+                <div class="core-logo">S</div>
+            </div>
+
+            <h3>Personal Intelligence</h3>
+
+            <p class="muted-text">
+                Your assistant, your workspace.
+            </p>
+
+            <div class="core-status-row">
+                <span>Local Brain</span>
+                <span class="status-badge">READY</span>
+            </div>
+
+            <div class="core-status-row">
+                <span>Voice Interface</span>
+                <span class="status-badge">AVAILABLE*</span>
+            </div>
+
+            <div class="core-status-row">
+                <span>Cloud AI</span>
+                <span class="status-badge pending">NOT CONNECTED</span>
+            </div>
+
+        </div>
+
+
+        <div class="info-section">
+
+            <div class="section-heading">
+                <h3>Quick Access</h3>
+            </div>
+
+            <button
+                class="quick-action"
+                type="button"
+                data-prompt="Calculate something for me."
+            >
+                <span class="quick-icon">⌗</span>
+                <span>
+                    <strong>Calculator</strong>
+                    <small>Quick calculations</small>
+                </span>
+                <span class="quick-arrow">›</span>
+            </button>
+
+            <button
+                class="quick-action"
+                type="button"
+                data-prompt="Translate this into English: "
+            >
+                <span class="quick-icon">文</span>
+                <span>
+                    <strong>Translator</strong>
+                    <small>Hindi and English</small>
+                </span>
+                <span class="quick-arrow">›</span>
+            </button>
+
+            <button
+                class="quick-action"
+                type="button"
+                data-prompt="Help me understand a coding problem."
+            >
+                <span class="quick-icon">&lt;/&gt;</span>
+                <span>
+                    <strong>Coding Help</strong>
+                    <small>Learn and debug</small>
+                </span>
+                <span class="quick-arrow">›</span>
+            </button>
+
+        </div>
+
+
+        <div class="info-section">
+
+            <div class="section-heading">
+                <h3>Session Overview</h3>
+            </div>
+
+            <div class="detail-card">
+                <span class="detail-label">CURRENT DATE</span>
+                <strong id="currentDate">Loading...</strong>
+            </div>
+
+            <div class="detail-card">
+                <span class="detail-label">CURRENT TIME</span>
+                <strong id="currentTime">Loading...</strong>
+            </div>
+
+        </div>
+
+
+        <div class="info-section memory-overview">
+
+            <div class="section-heading">
+                <h3>Memory Space</h3>
+                <span class="memory-indicator">LOCAL</span>
+            </div>
+
+            <p class="muted-text">
+                Shri's existing memory system remains separate.
+                Memory controls will be connected later.
+            </p>
+
+        </div>
+
+
+        <div class="info-footer">
+            <span class="status-dot"></span>
+            <span>SHRI AI OS · V1.0</span>
+        </div>
+
+    </aside>
 
 </div>
 
 
-<!-- Configuration -->
+<!-- MOBILE OVERLAYS -->
+<div id="sidebarOverlay" class="panel-overlay"></div>
+<div id="infoOverlay" class="panel-overlay"></div>
+
+
+<!-- Existing scripts preserved -->
 <script src="config.js"></script>
 
-<!-- Memory -->
 <script src="memory.js"></script>
 <script src="context.js"></script>
 <script src="personalMemory.js"></script>
 <script src="dynamicMemory.js"></script>
 
-<!-- Language -->
 <script src="translator.js"></script>
 
-<!-- Brain -->
 <script src="brain.js"></script>
 
-<!-- UI -->
 <script src="ui.js"></script>
 
-<!-- Voice -->
 <script src="voice.js"></script>
 
-<!-- App -->
 <script src="app.js"></script>
 
-<!-- Main Controller -->
 <script src="script.js"></script>
 
 </body>
