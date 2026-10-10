@@ -202,73 +202,86 @@ function handleNameRecall(text) {
     return null;
 }
 
-
 // ==========================================
-// NAME SAVE
+// NAME SAVE — FIX V4.1
 // ==========================================
 
 function handleNameSave(original) {
 
-    let match;
+    if (!original) {
+        return null;
+    }
 
+    // Remove optional wake words and greetings.
+    // Examples:
+    // Hey Shri, my name is Samarth
+    // Hello Shri my name is Samarth
+    // Shri, mera naam Samarth hai
+
+    let text = String(original)
+        .trim()
+        .replace(/[.!?,]+$/g, "")
+        .trim();
+
+    text = text.replace(
+        /^(?:(?:hey|hello|hi|namaste|namaskar)\s+)?(?:shri|sri)\s*[,!:\s]+/i,
+        ""
+    );
+
+    text = text.replace(
+        /^(?:hey|hello|hi)\s+/i,
+        ""
+    );
+
+    let match = null;
 
     // My name is Samarth
-    match =
-        original.match(
-            /^my\s+name\s+is\s+([a-zA-Z][a-zA-Z\s'-]{0,29})$/i
-        );
-
+    // My name is Samarth Rai
+    match = text.match(
+        /^my\s+name\s+is\s+([a-zA-Z][a-zA-Z\s'-]{0,39})$/i
+    );
 
     // Mera naam Samarth hai
     if (!match) {
-
-        match =
-            original.match(
-                /^mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{0,29})\s+(?:hai|h)$/i
-            );
+        match = text.match(
+            /^mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{0,39}?)\s+(?:hai|h)$/i
+        );
     }
-
 
     // Mera naam Samarth
     if (!match) {
-
-        match =
-            original.match(
-                /^mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{0,29})$/i
-            );
+        match = text.match(
+            /^mera\s+naam\s+([a-zA-Z][a-zA-Z\s'-]{0,39})$/i
+        );
     }
-
 
     // Mera name Samarth hai
     if (!match) {
-
-        match =
-            original.match(
-                /^mera\s+name\s+([a-zA-Z][a-zA-Z\s'-]{0,29})\s+(?:hai|h)$/i
-            );
+        match = text.match(
+            /^mera\s+name\s+([a-zA-Z][a-zA-Z\s'-]{0,39}?)\s+(?:hai|h)$/i
+        );
     }
 
+    // My name's Samarth
+    if (!match) {
+        match = text.match(
+            /^my\s+name's\s+([a-zA-Z][a-zA-Z\s'-]{0,39})$/i
+        );
+    }
 
     // Call me Samarth
     if (!match) {
-
-        match =
-            original.match(
-                /^call\s+me\s+([a-zA-Z][a-zA-Z\s'-]{0,29})$/i
-            );
+        match = text.match(
+            /^call\s+me\s+([a-zA-Z][a-zA-Z\s'-]{0,39})$/i
+        );
     }
-
 
     if (!match) {
         return null;
     }
 
-
-    const name =
-        cleanPersonalValue(
-            match[1]
-        );
-
+    const name = cleanPersonalValue(match[1])
+        .replace(/\s+/g, " ");
 
     if (
         !name ||
@@ -278,22 +291,25 @@ function handleNameSave(original) {
         return null;
     }
 
+    // Save the name using the existing memory system.
+    const saved = remember("username", name);
 
-    if (
-        remember(
-            "username",
-            name
-        )
-    ) {
-
-        return (
-            `Nice to meet you, ${name}! 😊 ` +
-            `I'll remember your name.`
-        );
+    if (saved) {
+        return `Nice to meet you, ${name}! 😊 I'll remember your name.`;
     }
 
+    // Check whether the memory system saved the name,
+    // even if remember() doesn't return true.
+    const savedName = getSafeUserName();
 
-    return null;
+    if (
+        savedName &&
+        savedName.toLowerCase() === name.toLowerCase()
+    ) {
+        return `Nice to meet you, ${name}! 😊 I'll remember your name.`;
+    }
+
+    return "I couldn't save your name right now. Please try again.";
 }
 
 
